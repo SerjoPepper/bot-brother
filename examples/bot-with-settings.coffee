@@ -1,6 +1,6 @@
-mother = require 'bot-mother'
+bm = require 'bot-mother'
 
-bot = mother({key: 'my_key'})
+bot = bm({key: 'my_key'})
 
 command = bot.command('settings')
 

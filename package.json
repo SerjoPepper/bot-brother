@@ -2,7 +2,7 @@
   "name": "bot-mother",
   "version": "1.0.0",
   "description": "Framework for creation telegram bots",
-  "main": "src/index.coffee",
+  "main": "index.js",
   "directories": {
     "example": "examples"
   },
@@ -27,6 +27,7 @@
   "dependencies": {
     "bluebird": "^2.9.34",
     "botanio": "0.0.5",
+    "coffee-script": "^1.9.3",
     "dot-object": "^1.1.0",
     "ejs": "^2.3.3",
     "json-fn": "^0.60.0",
