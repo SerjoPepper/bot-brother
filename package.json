@@ -1,0 +1,38 @@
+{
+  "name": "bot-mother",
+  "version": "1.0.0",
+  "description": "Framework for creation telegram bots",
+  "main": "src/index.coffee",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/SerjoPepper/bot-mother.git"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "telegram-bot"
+  ],
+  "author": "Sergey Pereskokov serjopepper@gmail.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SerjoPepper/bot-mother/issues"
+  },
+  "homepage": "https://github.com/SerjoPepper/bot-mother#readme",
+  "dependencies": {
+    "bluebird": "^2.9.34",
+    "botanio": "0.0.5",
+    "dot-object": "^1.1.0",
+    "ejs": "^2.3.3",
+    "json-fn": "^0.60.0",
+    "lodash": "^3.10.1",
+    "node-telegram-bot-api": "git+https://github.com/SerjoPepper/node-telegram-bot-api.git#master",
+    "redis": "^0.12.1",
+    "underscore.string": "^3.1.1"
+  }
+}
