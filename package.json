@@ -35,5 +35,10 @@
     "node-telegram-bot-api": "git+https://github.com/SerjoPepper/node-telegram-bot-api.git#master",
     "redis": "^0.12.1",
     "underscore.string": "^3.1.1"
+  },
+  "devDependencies": {
+    "coffeelint": "^1.10.1",
+    "grunt": "^0.4.5",
+    "grunt-coffeelint": "0.0.13"
   }
 }

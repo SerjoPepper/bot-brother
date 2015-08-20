@@ -47,7 +47,7 @@ class Context
 
   # send plain text, no rendered
   # @param text
-  sendRawText: (text, params) ->
+  sendMessage: (text, params) ->
     @_withMiddlewares =>
       @api.sendMessage(@_userId, prepareText(text), @_prepareParams(params))
 
@@ -55,9 +55,9 @@ class Context
   # @param {String} key
   # @param {Object} params
   # @option params {String} keyboard custom keyboard
-  sendMessage: (key, params) ->
+  sendText: (key, params) ->
     text = @render(key)
-    @sendRawText(text, params)
+    @sendMessage(text, params)
       # TODO
 
   sendPhoto: (photo, params) ->
@@ -66,29 +66,38 @@ class Context
 
   forwardMessage: ->
     @_withMiddlewares =>
+      @api.forwardMessage()
       # TODO
 
   sendAudio: ->
     @_withMiddlewares =>
+      @api.sendAudio()
       # TODO
 
   sendDocument: ->
     @_withMiddlewares =>
+      @api.sendDocument()
       # TODO
 
   sendSticker: ->
     @_withMiddlewares =>
+      @api.sendSticker()
       # TODO
 
   sendVideo: ->
     @_withMiddlewares =>
+      @api.sendVideo()
       # TODO
 
   sendChatAction: ->
     @_withMiddlewares =>
+      @api.chatAction()
+      # TODO
 
   sendLocation: ->
     @_withMiddlewares =>
+      @api.sendLocation()
+      # TODO
 
   # устанавливаем локаль
   setLocale: (locale) ->
@@ -114,7 +123,7 @@ class Context
     Object.create(@, _.extend(_.pick(res, Object.getOwnPropertyNames(res)), {_temp: {}}))
 
   _withMiddlewares: (handler) ->
-    @_handler.executeChain('beforeSend').then =>
+    @_handler.executeChain('beforeSend').then ->
       handler()
     .then =>
       @_handler.executeChain('afterSend')

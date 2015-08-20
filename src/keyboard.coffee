@@ -38,7 +38,7 @@ class Keyboard
         row = @processColumn(row)
       if _.isArray(row)
         row = row.map (column) =>
-          _.isPlainObject(column)
+          if _.isPlainObject(column)
             column = @processColumn(column)
           column
       row

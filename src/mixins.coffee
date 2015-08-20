@@ -1,6 +1,6 @@
 _ = require 'lodash'
 ejs = require 'ejs'
-Middleware = require './middleware'
+Command = require './command'
 constants = require './constants'
 Keyboard = require './keyboard'
 dot = require 'dot-object'
@@ -70,7 +70,7 @@ module.exports =
   use: (type, [options]..., handler) ->
     @_middlewares ||= {}
     @_middlewares[type] ||= []
-    @_middlewares[type].push(new Middleware(handler, options))
+    @_middlewares[type].push(new Command(handler, options))
     @
 
 

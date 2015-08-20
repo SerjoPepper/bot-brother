@@ -1,4 +1,3 @@
-Chat = require './chat'
 Command = require './command'
 CommandHandler = require './command-handler'
 SessionManager = require './session-manager'
@@ -34,7 +33,7 @@ class Bot
     userId = message.from.id
     @sessionManager.get(userId).then (session) =>
       handler = new CommandHandler(message: message, bot: @, session: session)
-      promise.try =>
+      promise.try ->
         handler.handle()
       .then =>
         @sessionManager.save(userId, handler.session)
@@ -67,7 +66,7 @@ class Bot
   getMiddlewaresChain: (commandsChain) ->
     commands = commandsChain.concat([@]) # adding bot middlewares
     middlewares = {}
-    constants.STAGES.forEach (stage) =>
+    constants.STAGES.forEach (stage) ->
       commands.forEach (command) ->
         middlewares[stage.name] ||= []
         _commandMiddlewares = command.getMiddlewares(stage)
@@ -109,16 +108,16 @@ class Bot
   # find chat by id
   withContext: (userId, cb) ->
     @sessionManager.get(userId).then (session) =>
-      @contextFromSession(session).then (context) =>
-        promise.try => cb(context)
+      @contextFromSession(session).then (context) ->
+        promise.try -> cb(context)
       .then =>
         @sessionManager.save(userId, session)
 
   # find chats by ids
   withContexts: (ids, cb) ->
     @sessionManager.getMultiple(ids).map (session) =>
-      @contextFromSession(session).then (context) =>
-        promise.try => cb(context)
+      @contextFromSession(session).then (context) ->
+        promise.try -> cb(context)
       .then =>
         @sessionManager.save(session.meta.userId, session)
 
@@ -126,8 +125,8 @@ class Bot
   # provide all chats
   withAllContexts: (handler) ->
     @sessionManager.getAll().map (session) =>
-      @contextFromSession(session).then (context) =>
-        promise.try => cb(context)
+      @contextFromSession(session).then (context) ->
+        promise.try -> cb(context)
       .then =>
         @sessionManager.save(session.meta.userId, session)
 
