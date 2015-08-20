@@ -14,7 +14,7 @@ class CommandHandler
     @bot = params.bot
     @locale = params.prevHandler?.locale
     @session = params.session || {}
-    @type = null # 'invoke' or 'answer'
+    @type = if @name then 'invoke' else null # 'invoke' or 'answer'
     @isRedirected = !!params.prevHandler
     @session.meta ||= {userId: @message.from.id} # current, prev, from, chat
     @session.data ||= {} # user data
@@ -50,7 +50,7 @@ class CommandHandler
 
     if @commandsChain.length
       if @type is 'invoke'
-        @args = params[1..]
+        @args = params?[1..] || []
     else
       @type = 'invoke'
       @name = @bot.getDefaultCommand()?.name

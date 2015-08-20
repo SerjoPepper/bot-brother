@@ -127,12 +127,12 @@ class Context
     @go(@_handler.name)
 
   clone: ->
-    res = new Context(handler)
-    Object.create(@, _.extend(_.pick(res, Object.getOwnPropertyNames(res)), {_temp: {}}))
+    res = new Context(@_handler)
+    _.extend(res, _.extend(_.pick(@, Object.getOwnPropertyNames(@)), {_temp: {}}))
 
-  _withMiddlewares: (handler) ->
+  _withMiddlewares: (cb) ->
     @_handler.executeStage('beforeSend').then ->
-      handler()
+      cb()
     .then =>
       @_handler.executeStage('afterSend')
 
