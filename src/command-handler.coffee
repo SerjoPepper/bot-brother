@@ -4,6 +4,7 @@ promise = require 'bluebird'
 _s = require 'underscore.string'
 _ = require 'lodash'
 emoji = require 'node-emoji'
+ejs = require 'ejs'
 
 class CommandHandler
 
@@ -39,7 +40,7 @@ class CommandHandler
         params = text.slice(1).split(/\s+/)
         @name = params[0]
       else
-        @type = 'asnwer'
+        @type = 'answer'
         @name = @session.meta?.current
 
     @commandsChain = @bot.getCommandsChain(@name)
@@ -69,6 +70,7 @@ class CommandHandler
       @session.meta.userId = @message.from.id
 
     @middlewaresChains = @bot.getMiddlewaresChains(@commandsChain)
+    @context.init()
 
     promise.resolve(
       _(constants.STAGES)
@@ -96,7 +98,7 @@ class CommandHandler
     text = if textFn
       textFn(data)
     else
-      key
+      ejs.compile(key)(data)
     text
 
 

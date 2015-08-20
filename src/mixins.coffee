@@ -45,7 +45,7 @@ module.exports =
   getKeyboard: (name = constants.DEFAULT_KEYBOARD, locale = constants.DEFAULT_LOCALE, type) ->
     keyboard = @_keyboards?[locale]?[name]
     if type
-      type == keyboard.type && keyboard
+      type == keyboard?.type && keyboard
     else
       keyboard
 

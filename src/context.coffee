@@ -15,7 +15,6 @@ class Context
     @isRedirected = @_handler.isRedirected # we transit to that state with go
     @isSynthetic = @_handler.isSynthetic
     @meta = @_handler.session.meta # команда
-    @answer = @_handler.answer
     @command = {
       name: @_handler.name
       args: @_handler.args
@@ -26,6 +25,14 @@ class Context
     @_userId = @_handler.session.meta.userId
     @_temp = {} # dont clone
     @data = {} # template data
+
+  init: ->
+    @command = {
+      name: @_handler.name
+      args: @_handler.args
+      type: @_handler.type
+    }
+    @answer = @_handler.answer?.value
 
   hideKeyboard: ->
     @useKeyboard(null)
@@ -130,12 +137,12 @@ class Context
       @_handler.executeStage('afterSend')
 
   _prepareParams: (params = {}) ->
-    markup = @_provideKeyboardMurkup()
+    markup = @_provideKeyboardMarkup()
     _params = {}
     if params.caption
       params.caption = @prepareText(params.caption)
     if markup
-      _params.reply_murkup = JSON.stringify(markup)
+      _params.reply_markup = JSON.stringify(markup)
     _.extend(_params, params)
 
   _renderKeyboard: ->
@@ -144,11 +151,12 @@ class Context
     else
       @_handler.renderKeyboard(@_temp.keyboardName)
 
-  _provideKeyboardMurkup: ->
+  _provideKeyboardMarkup: ->
     if @_temp.usePrevKeyboard
       null
     else
       markup = @_renderKeyboard()
+      # console.log('markup')
       if markup
         keyboard: markup, resize_keyboard: true
       else

@@ -42,13 +42,18 @@ class Keyboard
             column = @processColumn(column)
           column
       row
+    # console.log('constructor', @keyboard, keyboard)
 
 
   processColumn: (column) ->
     keys = Object.keys(column)
     unless keys[0] in KEYS
-      column = column[keys[0]]
-      column.key = keys[0]
+      val = column[keys[0]]
+      if _.isString(val)
+        column = {key: keys[0], value: val}
+      else
+        column = {key: keys[0]}
+        _.extend(column, val)
     if column.go
       column.handler = (ctx) -> ctx.go(column.go)
     if column.text
@@ -59,6 +64,7 @@ class Keyboard
   replaceLayouts: (chain, locale) ->
     if @type is 'table'
       keyboard = []
+      # console.log('@keyboard', @keyboard)
       for row in @keyboard
         if _.isString(row)
           keyboard = keyboard.concat(@embedLayout(row, chain, locale, 'table'))
@@ -93,7 +99,7 @@ class Keyboard
 
 
   render: (locale, chain, data, handler) ->
-    keyboard = @replaceLayouts(locale, chain)
+    keyboard = @replaceLayouts(chain, locale)
     map = {}
     markup = []
     for row in keyboard
@@ -106,7 +112,7 @@ class Keyboard
         text = emoji.emojify(text)
         if !column.isShown || column.isShown(handler.context)
           markupRow.push(text)
-          map[text] = {handler: column.handler, value: column}
+          map[text] = {handler: column.handler, value: column.value}
       markup.push(markupRow) if markupRow.length
 
     {markup: markup, map: map}
