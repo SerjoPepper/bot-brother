@@ -101,29 +101,35 @@ class Bot
 
 
   contextFromSession: (session) ->
-    handler = new CommandHandler(bot: @, session: session, isSynthetic: true)
     promise.try =>
-      handler.handle()
-    .then =>
+      handler = new CommandHandler(bot: @, session: session, isSynthetic: true)
       handler.context
 
 
   # find chat by id
-  getContext: (id) ->
+  withContext: (userId, cb) ->
     @sessionManager.get(userId).then (session) =>
-      @contextFromSession(session)
-
+      @contextFromSession(session).then (context) =>
+        promise.try => cb(context)
+      .then =>
+        @sessionManager.save(userId, session)
 
   # find chats by ids
-  getContexts: (ids) ->
+  withContexts: (ids, cb) ->
     @sessionManager.getMultiple(ids).map (session) =>
-      @contextFromSession(session)
+      @contextFromSession(session).then (context) =>
+        promise.try => cb(context)
+      .then =>
+        @sessionManager.save(session.meta.userId, session)
 
 
   # provide all chats
-  allContexts: (ids) ->
+  withAllContexts: (handler) ->
     @sessionManager.getAll().map (session) =>
-      @contextFromSession(session)
+      @contextFromSession(session).then (context) =>
+        promise.try => cb(context)
+      .then =>
+        @sessionManager.save(session.meta.userId, session)
 
 _.extend(Bot::, mixins)
 

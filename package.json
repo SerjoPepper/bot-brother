@@ -1,5 +1,5 @@
 {
-  "name": "bot-mother",
+  "name": "bot-brother",
   "version": "1.0.0",
   "description": "Framework for creation telegram bots",
   "main": "index.js",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/SerjoPepper/bot-mother.git"
+    "url": "git+ssh://git@github.com/SerjoPepper/bot-brother.git"
   },
   "keywords": [
     "telegram",
@@ -21,9 +21,9 @@
   "author": "Sergey Pereskokov serjopepper@gmail.com",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/SerjoPepper/bot-mother/issues"
+    "url": "https://github.com/SerjoPepper/bot-brother/issues"
   },
-  "homepage": "https://github.com/SerjoPepper/bot-mother#readme",
+  "homepage": "https://github.com/SerjoPepper/bot-brother#readme",
   "dependencies": {
     "bluebird": "^2.9.34",
     "botanio": "0.0.5",

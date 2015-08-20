@@ -26,8 +26,17 @@ class Context
     @_temp = {} # dont clone
     @data = {} # template data
 
+  hideKeyboard: ->
+    @useKeyboard(null)
+
+  # использовать предыдущую клавиатуру
+  usePrevKeyboard: ->
+    @_temp.usePrevKeyboard = true
+    @
+
   useKeyboard: (name) ->
     @_temp.keyboardName = name
+    @
 
   getUserProfilePhotos: (offset = 0, limit = 1) ->
     @bot.api.getUserProfilePhotos(@_userId, offset, limit)
@@ -54,7 +63,6 @@ class Context
   sendPhoto: (photo, params) ->
     @_withMiddlewares =>
       @api.sendPhoto(@_userId, photo, @_prepareParams(params))
-      # TODO
 
   forwardMessage: ->
     @_withMiddlewares =>
@@ -121,14 +129,21 @@ class Context
     _.extend(_params, params)
 
   _renderKeyboard: ->
-    @_handler.renderKeyboard(@_temp.keyboardName)
+    if @_temp.keyboardName is null
+      null
+    else
+      @_handler.renderKeyboard(@_temp.keyboardName)
 
   _provideKeyboardMurkup: ->
-    markup = @_renderKeyboard()
-    if markup
-      keyboard: markup, resize_keyboard: true
+    if @_temp.usePrevKeyboard
+      null
     else
-      hide_keyboard: true
+      markup = @_renderKeyboard()
+      if markup
+        keyboard: markup, resize_keyboard: true
+      else
+        hide_keyboard: true
+
 
 
 _.extend(Context::, mixins)

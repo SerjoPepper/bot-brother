@@ -20,6 +20,7 @@ class CommandHandler
     @prevHandler = params.prevHandler
     @isSynthetic = params.isSynthetic || @isRedirected
     @command = null # main command
+    @context = @prevHandler?.context.clone(@) || new Context(@)
 
 
   setLocale: ->
@@ -29,7 +30,6 @@ class CommandHandler
 
   getLocale: ->
     @locale
-
 
   handle: ->
     if @message?.text
@@ -41,12 +41,10 @@ class CommandHandler
       else
         @type = 'asnwer'
         @name = @session.meta?.current
-    else if @isRedirected
-      @session.meta.prev = @session.meta
 
     @commandsChain = @bot.getCommandsChain(@name)
     if _.isString(@commandsChain[0]?.name)
-      @command = @commandsChain[0]?.name
+      @command = @commandsChain[0]
     @chain = @bot.getCommandsChain(@name, includeParent: true, includeBot: true)
 
     if @commandsChain.length
@@ -59,20 +57,18 @@ class CommandHandler
 
     return if !@name && !@synthetic
 
-    if @session.keyboardMap
+    if @type is 'answer' && @session.keyboardMap
       @answer = @session.keyboardMap[@message.text]
       if !@answer && !@command?.compliantKeyboard
         return
 
-    @session.meta.prev ||= @name
     if @type is 'invoke'
-      @session.meta.prev = @session.meta.current
+      @session.meta.prev = @session.meta?.current
       @session.meta.current = @name
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
+      @session.meta.userId = @message.from.id
 
     @middlewaresChains = @bot.getMiddlewaresChains(commandsChain)
-
-    @context = @prevHandler?.context.clone(@) || new Context(@)
 
     promise.resolve _(constants.STAGES)
       .sortBy('priority')
