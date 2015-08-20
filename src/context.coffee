@@ -1,7 +1,8 @@
 _ = require 'lodash'
-emoji = require 'emoji'
+emoji = require 'node-emoji'
+mixins = require './mixins'
 
-prepareText = ->
+prepareText = (text) ->
   emoji.emojify(text)
 
 class Context
@@ -22,7 +23,7 @@ class Context
     }
     @_handler = handler
     @_api = @_handler.bot.api
-    @_userId = @_handler.meta.from.id
+    @_userId = @_handler.session.meta.userId
     @_temp = {} # dont clone
     @data = {} # template data
 
@@ -49,7 +50,7 @@ class Context
   # @param text
   sendMessage: (text, params) ->
     @_withMiddlewares =>
-      @api.sendMessage(@_userId, prepareText(text), @_prepareParams(params))
+      @_api.sendMessage(@_userId, prepareText(text), @_prepareParams(params))
 
   # send message
   # @param {String} key
@@ -62,46 +63,46 @@ class Context
 
   sendPhoto: (photo, params) ->
     @_withMiddlewares =>
-      @api.sendPhoto(@_userId, photo, @_prepareParams(params))
+      @_api.sendPhoto(@_userId, photo, @_prepareParams(params))
 
   forwardMessage: ->
     @_withMiddlewares =>
-      @api.forwardMessage()
+      @_api.forwardMessage()
       # TODO
 
   sendAudio: ->
     @_withMiddlewares =>
-      @api.sendAudio()
+      @_api.sendAudio()
       # TODO
 
   sendDocument: ->
     @_withMiddlewares =>
-      @api.sendDocument()
+      @_api.sendDocument()
       # TODO
 
   sendSticker: ->
     @_withMiddlewares =>
-      @api.sendSticker()
+      @_api.sendSticker()
       # TODO
 
   sendVideo: ->
     @_withMiddlewares =>
-      @api.sendVideo()
+      @_api.sendVideo()
       # TODO
 
   sendChatAction: ->
     @_withMiddlewares =>
-      @api.chatAction()
+      @_api.chatAction()
       # TODO
 
   sendLocation: ->
     @_withMiddlewares =>
-      @api.sendLocation()
+      @_api.sendLocation()
       # TODO
 
   # устанавливаем локаль
   setLocale: (locale) ->
-    @_hander.setLocale(locale)
+    @_handler.setLocale(locale)
 
   getLocale: ->
     @_handler.getLocale()
@@ -123,10 +124,10 @@ class Context
     Object.create(@, _.extend(_.pick(res, Object.getOwnPropertyNames(res)), {_temp: {}}))
 
   _withMiddlewares: (handler) ->
-    @_handler.executeChain('beforeSend').then ->
+    @_handler.executeStage('beforeSend').then ->
       handler()
     .then =>
-      @_handler.executeChain('afterSend')
+      @_handler.executeStage('afterSend')
 
   _prepareParams: (params = {}) ->
     markup = @_provideKeyboardMurkup()

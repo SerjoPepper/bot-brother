@@ -30,9 +30,9 @@
     "coffee-script": "^1.9.3",
     "dot-object": "^1.1.0",
     "ejs": "^2.3.3",
-    "emoji": "^0.3.2",
     "json-fn": "^0.60.0",
     "lodash": "^3.10.1",
+    "node-emoji": "^1.0.3",
     "node-telegram-bot-api": "git+https://github.com/SerjoPepper/node-telegram-bot-api.git#master",
     "redis": "^0.12.1",
     "underscore.string": "^3.1.1"

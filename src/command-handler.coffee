@@ -15,7 +15,7 @@ class CommandHandler
     @session = params.session || {}
     @type = null # 'invoke' or 'answer'
     @isRedirected = !!params.prevHandler
-    @session.meta ||= {} # current, prev, from, chat
+    @session.meta ||= {userId: @message.from.id} # current, prev, from, chat
     @session.data ||= {} # user data
     @prevHandler = params.prevHandler
     @isSynthetic = params.isSynthetic || @isRedirected
@@ -23,7 +23,7 @@ class CommandHandler
     @context = @prevHandler?.context.clone(@) || new Context(@)
 
 
-  setLocale: ->
+  setLocale: (locale) ->
     @locale = locale
     @prevHandler?.setLocale(@locale)
 
@@ -36,7 +36,7 @@ class CommandHandler
       text = @message.text = _s.trim(@message.text)
       if text.indexOf('/') is 0
         @type = 'invoke'
-        params = text.split(/\s+/)
+        params = text.slice(1).split(/\s+/)
         @name = params[0]
       else
         @type = 'asnwer'
@@ -68,18 +68,21 @@ class CommandHandler
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
       @session.meta.userId = @message.from.id
 
-    @middlewaresChains = @bot.getMiddlewaresChains(commandsChain)
+    @middlewaresChains = @bot.getMiddlewaresChains(@commandsChain)
 
-    promise.resolve _(constants.STAGES)
+    promise.resolve(
+      _(constants.STAGES)
       .sortBy('priority')
       .reject('noExecute')
       .filter (stage) => !stage.type || stage.type is @type
+      .map('name')
       .value().map (stage) =>
         # если в ответе есть обработчик - исполняем его
         if stage is 'answer' and @answer?.handler?
           @executeMiddleware(@answer.handler)
         else
           @executeStage(stage)
+    )
 
   getFullChain: ->
     [@context].concat(@chain)
@@ -149,7 +152,7 @@ class CommandHandler
         keyboard = command.getKeyboard(name, locale)
         break if keyboard
 
-    keyboard = keyboard.render(locale, chain, data, handler)
+    keyboard = keyboard?.render(locale, chain, data, handler)
     if keyboard
       {markup: markup, map: map} = keyboard
       @session.keyboardMap = map

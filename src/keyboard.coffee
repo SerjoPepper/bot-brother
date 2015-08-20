@@ -1,6 +1,6 @@
 ejs = require 'ejs'
 _ = require 'lodash'
-emoji = require 'emoji'
+emoji = require 'node-emoji'
 
 ###
 
@@ -112,4 +112,4 @@ class Keyboard
     {markup: markup, map: map}
 
 
-module.exports = keyboard
+module.exports = Keyboard

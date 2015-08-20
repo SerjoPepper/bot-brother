@@ -8,4 +8,4 @@ module.exports.botanio = (key) ->
 
 module.exports.typing = ->
   (context) ->
-    @bot.api.sendChatAction(context.message.from.id, 'typing')
+    context.bot.api.sendChatAction(context.message.from.id, 'typing')

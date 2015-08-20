@@ -11,18 +11,18 @@ class SessionManager
   constructor: (@bot) ->
 
   get: (id) ->
-    redis.hgetAsync("#{PREFIX}:#{@bot.id}", id).then (session) ->
+    @bot.redis.hgetAsync("#{PREFIX}:#{@bot.id}", id).then (session) ->
       session && jsonfn.parse(session)
 
   save: (id, session) ->
-    redis.hsetAsync("#{PREFIX}:#{@bot.id}", id, jsonfn.stringify(session))
+    @bot.redis.hsetAsync("#{PREFIX}:#{@bot.id}", id, jsonfn.stringify(session))
 
   getMultiple: (ids) ->
-    redis.hmgetAsync(["#{PREFIX}:#{@bot.id}"].concat(ids)).then (sessions) ->
+    @bot.redis.hmgetAsync(["#{PREFIX}:#{@bot.id}"].concat(ids)).then (sessions) ->
       sessions.filter(Boolean).map (session) -> jsonfn.parse(session)
 
   getAll: ->
-    redis.hvalsAsync("#{PREFIX}:#{@bot.id}").then (sessions) ->
+    @bot.redis.hvalsAsync("#{PREFIX}:#{@bot.id}").then (sessions) ->
       sessions.filter(Boolean).map (session) -> jsonfn.parse(session)
 
 

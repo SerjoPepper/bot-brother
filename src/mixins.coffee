@@ -1,10 +1,9 @@
 _ = require 'lodash'
 ejs = require 'ejs'
-Command = require './command'
 constants = require './constants'
 Keyboard = require './keyboard'
 dot = require 'dot-object'
-
+_s = require 'underscore.string'
 
 deepReplace = (val, fn) ->
   if _.isObject(val)
@@ -67,10 +66,10 @@ module.exports =
 
 
   # добавляем middleware
-  use: (type, [options]..., handler) ->
+  use: (type, handler) ->
     @_middlewares ||= {}
     @_middlewares[type] ||= []
-    @_middlewares[type].push(new Command(handler, options))
+    @_middlewares[type].push(handler)
     @
 
 

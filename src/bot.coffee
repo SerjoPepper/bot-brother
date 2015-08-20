@@ -4,6 +4,8 @@ SessionManager = require './session-manager'
 constants = require './constants'
 mixins = require './mixins'
 _ = require 'lodash'
+redis = require 'node-redis'
+promise =require 'bluebird'
 Api = require 'node-telegram-bot-api'
 
 class Bot
@@ -11,7 +13,7 @@ class Bot
   constructor: (config) ->
     @config = config
     @config.redis ||= {}
-    @sessionManager = @config.sessionManager || new SessionManager()
+    @sessionManager = @config.sessionManager || new SessionManager(@)
     # bot api key
     @key = @config.key
     # bot id
@@ -26,7 +28,8 @@ class Bot
     @api = new Api(@key, @_isListen && {polling: @config.polling || true})
     if @_isListen
       @api.on 'message', (msg) =>
-        @_handleMessage(msg)
+        @_handleMessage(msg).catch (err) ->
+          console.error(err, err.stack)
 
 
   _handleMessage: (message) ->
@@ -63,13 +66,13 @@ class Bot
     commands
 
   # Return middlewares object
-  getMiddlewaresChain: (commandsChain) ->
+  getMiddlewaresChains: (commandsChain) ->
     commands = commandsChain.concat([@]) # adding bot middlewares
     middlewares = {}
     constants.STAGES.forEach (stage) ->
       commands.forEach (command) ->
         middlewares[stage.name] ||= []
-        _commandMiddlewares = command.getMiddlewares(stage)
+        _commandMiddlewares = command.getMiddlewares(stage.name)
         if stage.invert
           middlewares[stage.name] = _commandMiddlewares.concat(middlewares[stage.name])
         else
@@ -96,7 +99,9 @@ class Bot
   # register new command
   # name - regex or string
   command: (name, options = {}) ->
-    @commands.push(new Command(_.extend({}, bot: @, options)))
+    command = new Command(name, _.extend({}, bot: @, options))
+    @commands.push(command)
+    command
 
 
   contextFromSession: (session) ->
@@ -133,4 +138,4 @@ class Bot
 _.extend(Bot::, mixins)
 
 module.exports = (config) -> new Bot(config)
-module.exports.middlewares = middlewares
+module.exports.middlewares = require('./middlewares')
