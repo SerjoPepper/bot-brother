@@ -76,13 +76,13 @@ class CommandHandler
       .reject('noExecute')
       .filter (stage) => !stage.type || stage.type is @type
       .map('name')
-      .value().map (stage) =>
-        # если в ответе есть обработчик - исполняем его
-        if stage is 'answer' and @answer?.handler?
-          @executeMiddleware(@answer.handler)
-        else
-          @executeStage(stage)
-    )
+      .value()
+    ).each (stage) =>
+      # если в ответе есть обработчик - исполняем его
+      if stage is 'answer' and @answer?.handler?
+        @executeMiddleware(@answer.handler)
+      else
+        @executeStage(stage)
 
   getFullChain: ->
     [@context].concat(@chain)
@@ -101,18 +101,20 @@ class CommandHandler
 
 
   executeStage: (stage) ->
-    promise.resolve(@middlewaresChains[stage] || []).map (middleware) =>
+    promise.resolve(@middlewaresChains[stage] || []).each (middleware) =>
       @executeMiddleware(middleware)
 
 
   executeMiddleware: (middleware) ->
-    callback = null
-    cbPromise = promise.fromNode((cb) -> next = cb)
-    resPromise = middleware(@context, (err) -> next(err))
-    if typeof resPromise?.then is 'function'
-      resPromise
-    else
-      cbPromise
+    # next = null
+    # cbPromise = promise.fromNode((cb) -> next = cb)
+    # resPromise = middleware(@context, (err) -> next(err))
+    # if typeof resPromise?.then is 'function'
+    #   resPromise
+    # else
+    #   cbPromise
+    promise.try =>
+      middleware(@context)
 
 
   go: (name) ->
@@ -152,7 +154,7 @@ class CommandHandler
         keyboard = command.getKeyboard(name, locale)
         break if keyboard
 
-    keyboard = keyboard?.render(locale, chain, data, handler)
+    keyboard = keyboard?.render(locale, chain, data, @)
     if keyboard
       {markup: markup, map: map} = keyboard
       @session.keyboardMap = map

@@ -14,7 +14,7 @@ class Context
     @message = @_handler.message
     @isRedirected = @_handler.isRedirected # we transit to that state with go
     @isSynthetic = @_handler.isSynthetic
-    @meta = @_handler.meta # команда
+    @meta = @_handler.session.meta # команда
     @answer = @_handler.answer
     @command = {
       name: @_handler.name
