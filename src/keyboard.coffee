@@ -51,6 +51,8 @@ class Keyboard
       val = column[keys[0]]
       if _.isString(val)
         column = {key: keys[0], value: val}
+      else if _.isFunction(val)
+        column = {key: keys[0], handler: val}
       else
         column = {key: keys[0]}
         _.extend(column, val)

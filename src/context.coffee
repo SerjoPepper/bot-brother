@@ -5,6 +5,8 @@ mixins = require './mixins'
 prepareText = (text) ->
   emoji.emojify(text)
 
+RESTRICTED_PROPS = ['isRedirected', 'isSynthetic', 'message', 'session', 'bot', 'command']
+
 class Context
 
   constructor: (handler) ->
@@ -126,9 +128,12 @@ class Context
   repeat: ->
     @go(@_handler.name)
 
-  clone: ->
-    res = new Context(@_handler)
-    _.extend(res, _.extend(_.pick(@, Object.getOwnPropertyNames(@)), {_temp: {}}))
+  clone: (handler) ->
+    res = new Context(handler)
+    setProps = Object.getOwnPropertyNames(@).filter (prop) ->
+      !(prop in RESTRICTED_PROPS || prop.indexOf('_') is 0)
+    # console.log('clone context', setProps)
+    _.extend(res, _.pick(@, setProps))
 
   _withMiddlewares: (cb) ->
     @_handler.executeStage('beforeSend').then ->
