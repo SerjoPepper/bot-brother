@@ -123,7 +123,7 @@ class Context
     @go(@_handler.name.split('_').slice(0, -1).join('_') || @_handler.name)
 
   goBack: ->
-    @go(@_handler.session.meta.prev)
+    @go(@_handler.prev)
 
   repeat: ->
     @go(@_handler.name)

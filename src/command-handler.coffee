@@ -19,6 +19,7 @@ class CommandHandler
     @session.meta ||= {userId: @message.from.id} # current, prev, from, chat
     @session.data ||= {} # user data
     @prevHandler = params.prevHandler
+    @prev = params.prevHandler?.name || @session.meta.prev
     @isSynthetic = params.isSynthetic || @isRedirected
     @command = null # main command
     @context = @prevHandler?.context.clone(@) || new Context(@)
