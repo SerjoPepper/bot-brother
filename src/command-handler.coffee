@@ -82,7 +82,10 @@ class CommandHandler
       .value()
     ).each (stage) =>
       # если в ответе есть обработчик - исполняем его
-      if stage is 'answer' and @answer?.handler?
+      if stage is 'answer' and (@answer?.handler? || @answer?.go?)
+        if @answer?.go?
+          go = @answer?.go
+          @answer.handler = (ctx) -> ctx.go(go)
         @executeMiddleware(@answer.handler)
       else
         @executeStage(stage)

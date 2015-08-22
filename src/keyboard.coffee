@@ -56,8 +56,6 @@ class Keyboard
       else
         column = {key: keys[0]}
         _.extend(column, val)
-    if column.go
-      column.handler = (ctx) -> ctx.go(column.go)
     if column.text
       column.text = ejs.compile(column.text)
     column
@@ -114,7 +112,7 @@ class Keyboard
         text = emoji.emojify(text)
         if !column.isShown || column.isShown(handler.context)
           markupRow.push(text)
-          map[text] = {handler: column.handler, value: column.value}
+          map[text] = {handler: column.handler, value: column.value, go: column.go}
       markup.push(markupRow) if markupRow.length
 
     {markup: markup, map: map}
