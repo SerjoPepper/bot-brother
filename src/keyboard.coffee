@@ -33,7 +33,7 @@ class Keyboard
 
   constructor: (keyboard, params, @command) ->
     @type = params.type || 'table' # 'table' or 'row'
-    @keyboard = keyboard.map (row, i) =>
+    @keyboard = _.cloneDeep(keyboard).map (row, i) =>
       if @type is 'row' && _.isPlainObject(row)
         row = @processColumn(row)
       if _.isArray(row)
@@ -42,7 +42,6 @@ class Keyboard
             column = @processColumn(column)
           column
       row
-    # console.log('constructor', @keyboard, keyboard)
 
 
   processColumn: (column) ->
@@ -64,7 +63,6 @@ class Keyboard
   replaceLayouts: (chain, locale) ->
     if @type is 'table'
       keyboard = []
-      # console.log('@keyboard', @keyboard)
       for row in @keyboard
         if _.isString(row)
           keyboard = keyboard.concat(@embedLayout(row, chain, locale, 'table'))
