@@ -18,17 +18,20 @@ class CommandHandler
     @isRedirected = !!params.prevHandler
     @session.meta ||= {userId: @message.from.id} # current, prev, from, chat
     @session.data ||= {} # user data
+    @session.backHistory || = {}
     @prevHandler = params.prevHandler
-    @prev = params.prevHandler?.name || @session.meta.prev
+    @noChangeHistory = params.noChangeHistory
+
     @isSynthetic = params.isSynthetic || @isRedirected
     @command = null # main command
     @context = @prevHandler?.context.clone(@) || new Context(@)
 
+    if !@noChangeHistory && @prevHandler?.name
+      @session.backHistory[@name] = @prevHandler.name
 
   setLocale: (locale) ->
     @locale = locale
     @prevHandler?.setLocale(@locale)
-
 
   getLocale: ->
     @locale
@@ -65,10 +68,11 @@ class CommandHandler
         return
 
     if @type is 'invoke'
-      @session.meta.prev = @session.meta?.current
+      # unless @noChangeHistory
+      #   @session.backHistory[@name] = @session.meta?.current
       @session.meta.current = @name
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
-      @session.meta.userId = @message.from.id
+      @session.meta.userId = @message?.from?.id || @session.meta.userId
 
     @middlewaresChains = @bot.getMiddlewaresChains(@commandsChain)
     @context.init()
@@ -93,23 +97,24 @@ class CommandHandler
   getFullChain: ->
     [@context].concat(@chain)
 
-  renderText: (key, data) ->
+  renderText: (key, data, options = {}) ->
     locale = @getLocale()
     chain = @getFullChain()
     for command in chain
       textFn = command.getText(key, locale) || command.getText(key)
       break if textFn
+    exData =
+      render: (key) => @renderText(key, data, options)
+    data = _.extend({}, exData, data)
     text = if textFn
       textFn(data)
-    else
+    else if !options.strict
       ejs.compile(key)(data)
     text
-
 
   executeStage: (stage) ->
     promise.resolve(@middlewaresChains[stage] || []).each (middleware) =>
       @executeMiddleware(middleware)
-
 
   executeMiddleware: (middleware) ->
     # next = null
@@ -120,10 +125,10 @@ class CommandHandler
     # else
     #   cbPromise
     promise.try =>
-      middleware(@context)
+      unless @context.isEnded
+        middleware(@context)
 
-
-  go: (name) ->
+  go: (name, noChangeHistory) ->
     message = _.pick(@message, 'from', 'chat')
     handler = new CommandHandler({
       message: message
@@ -131,8 +136,12 @@ class CommandHandler
       session: @session
       prevHandler: @
       name: name
+      noChangeHistory: noChangeHistory
     })
     handler.handle()
+
+  getPrevStateName: ->
+    @session.backHistory[@name]
 
   # Render keyboard
   # @param {Object} data a data to render keyboard

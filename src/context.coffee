@@ -5,7 +5,7 @@ mixins = require './mixins'
 prepareText = (text) ->
   emoji.emojify(text)
 
-RESTRICTED_PROPS = ['isRedirected', 'isSynthetic', 'message', 'session', 'bot', 'command']
+RESTRICTED_PROPS = ['isRedirected', 'isSynthetic', 'message', 'session', 'bot', 'command', 'isEnded']
 
 class Context
 
@@ -52,8 +52,9 @@ class Context
     @bot.api.getUserProfilePhotos(@_userId, offset, limit)
 
   # render string
-  render: (key) ->
-    @_handler.renderText(key, @data)
+  # options.strict
+  render: (key, options) ->
+    @_handler.renderText(key, @data, options)
 
   # send plain text, no rendered
   # @param text
@@ -123,10 +124,15 @@ class Context
     @go(@_handler.name.split('_').slice(0, -1).join('_') || @_handler.name)
 
   goBack: ->
-    @go(@_handler.prev)
+    @go(@_handler.getPrevStateName(), true)
 
   repeat: ->
-    @go(@_handler.name)
+    @go(@_handler.name, true)
+
+  # не обрабатываем дальше цепочку middleware
+  end: ->
+    @isEnded = true
+
 
   clone: (handler) ->
     res = new Context(handler)
