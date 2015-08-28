@@ -117,8 +117,8 @@ class Context
   getLocale: ->
     @_handler.getLocale()
 
-  go: (name) ->
-    @_handler.go(name)
+  go: (name, noChangeHistory) ->
+    @_handler.go(name, noChangeHistory)
 
   goParent: ->
     @go(@_handler.name.split('_').slice(0, -1).join('_') || @_handler.name)
@@ -138,7 +138,6 @@ class Context
     res = new Context(handler)
     setProps = Object.getOwnPropertyNames(@).filter (prop) ->
       !(prop in RESTRICTED_PROPS || prop.indexOf('_') is 0)
-    # console.log('clone context', setProps)
     _.extend(res, _.pick(@, setProps))
 
   _withMiddlewares: (cb) ->
@@ -167,7 +166,6 @@ class Context
       null
     else
       markup = @_renderKeyboard()
-      # console.log('markup')
       if markup
         keyboard: markup, resize_keyboard: true
       else

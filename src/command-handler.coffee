@@ -26,9 +26,6 @@ class CommandHandler
     @command = null # main command
     @context = @prevHandler?.context.clone(@) || new Context(@)
 
-    if !@noChangeHistory && @prevHandler?.name
-      @session.backHistory[@name] = @prevHandler.name
-
   setLocale: (locale) ->
     @locale = locale
     @prevHandler?.setLocale(@locale)
@@ -68,8 +65,8 @@ class CommandHandler
         return
 
     if @type is 'invoke'
-      # unless @noChangeHistory
-      #   @session.backHistory[@name] = @session.meta?.current
+      if !@noChangeHistory && @prevHandler?.name
+        @session.backHistory[@name] = @prevHandler.name
       @session.meta.current = @name
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
       @session.meta.userId = @message?.from?.id || @session.meta.userId
