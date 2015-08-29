@@ -34,12 +34,16 @@ class CommandHandler
     @locale
 
   handle: ->
-    if @message?.text
-      text = @message.text = _s.trim(@message.text)
-      if text.indexOf('/') is 0
-        @type = 'invoke'
-        params = text.slice(1).split(/\s+/)
-        @name = params[0]
+    if @message && !@prevHandler
+      if @message?.text
+        text = @message.text = _s.trim(@message.text)
+        if text.indexOf('/') is 0
+          @type = 'invoke'
+          params = text.slice(1).split(/\s+/)
+          @name = params[0]
+        else
+          @type = 'answer'
+          @name = @session.meta?.current
       else
         @type = 'answer'
         @name = @session.meta?.current
