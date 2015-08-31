@@ -166,7 +166,7 @@ class Context
       null
     else
       markup = @_renderKeyboard()
-      if markup
+      if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
         keyboard: markup, resize_keyboard: true
       else
         hide_keyboard: true
