@@ -1,6 +1,6 @@
 {
   "name": "bot-brother",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Framework for creation telegram bots",
   "main": "index.js",
   "directories": {
@@ -26,7 +26,7 @@
   "homepage": "https://github.com/SerjoPepper/bot-brother#readme",
   "dependencies": {
     "bluebird": "^2.9.34",
-    "botanio": "0.0.5",
+    "botanio": "0.0.6",
     "coffee-script": "^1.9.3",
     "dot-object": "^1.1.0",
     "ejs": "^2.3.3",
