@@ -21,6 +21,7 @@ class CommandHandler
     @session.backHistory || = {}
     @prevHandler = params.prevHandler
     @noChangeHistory = params.noChangeHistory
+    @args = params.args
 
     @isSynthetic = params.isSynthetic || @isRedirected
     @command = null # main command
@@ -55,7 +56,7 @@ class CommandHandler
 
     if @commandsChain.length
       if @type is 'invoke'
-        @args = params?[1..] || []
+        @args ||= params?[1..] || []
     else
       @type = 'invoke'
       @name = @bot.getDefaultCommand()?.name
@@ -129,7 +130,7 @@ class CommandHandler
       unless @context.isEnded
         middleware(@context)
 
-  go: (name, noChangeHistory) ->
+  go: (name, params = {}) ->
     message = _.pick(@message, 'from', 'chat')
     handler = new CommandHandler({
       message: message
@@ -137,7 +138,8 @@ class CommandHandler
       session: @session
       prevHandler: @
       name: name
-      noChangeHistory: noChangeHistory
+      noChangeHistory: params.noChangeHistory
+      args: params.args
     })
     handler.handle()
 

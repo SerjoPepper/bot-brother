@@ -117,17 +117,17 @@ class Context
   getLocale: ->
     @_handler.getLocale()
 
-  go: (name, noChangeHistory) ->
-    @_handler.go(name, noChangeHistory)
+  go: (name, params) ->
+    @_handler.go(name, params)
 
   goParent: ->
     @go(@_handler.name.split('_').slice(0, -1).join('_') || @_handler.name)
 
   goBack: ->
-    @go(@_handler.getPrevStateName(), true)
+    @go(@_handler.getPrevStateName(), {noChangeHistory: true})
 
   repeat: ->
-    @go(@_handler.name, true)
+    @go(@_handler.name, {noChangeHistory: true, args: @command.args})
 
   # не обрабатываем дальше цепочку middleware
   end: ->
