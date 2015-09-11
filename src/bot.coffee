@@ -31,15 +31,20 @@ class Bot
         @_handleMessage(msg).catch (err) ->
           console.error(err, err.stack)
 
+  _provideSessionId: (message) ->
+    if message.chat.id is message.from.id
+      message.from.id
+    else
+      message.chat.id + ':' + message.from.id
 
   _handleMessage: (message) ->
-    userId = message.from.id
-    @sessionManager.get(userId).then (session) =>
+    sessionId = @_provideSessionId(message)
+    @sessionManager.get(sessionId).then (session) =>
       handler = new CommandHandler(message: message, bot: @, session: session)
       promise.try ->
         handler.handle()
       .then =>
-        @sessionManager.save(userId, handler.session)
+        @sessionManager.save(sessionId, handler.session)
 
 
   # Returns middlewares for handling
@@ -111,12 +116,12 @@ class Bot
 
 
   # find chat by id
-  withContext: (userId, cb) ->
-    @sessionManager.get(userId).then (session) =>
+  withContext: (sessionId, cb) ->
+    @sessionManager.get(sessionId).then (session) =>
       @contextFromSession(session).then (context) ->
         promise.try -> cb(context)
       .then =>
-        @sessionManager.save(userId, session)
+        @sessionManager.save(sessionId, session)
 
   # find chats by ids
   withContexts: (ids, cb) ->
@@ -124,7 +129,7 @@ class Bot
       @contextFromSession(session).then (context) ->
         promise.try -> cb(context)
       .then =>
-        @sessionManager.save(session.meta.userId, session)
+        @sessionManager.save(session.meta.sessionId, session)
 
 
   # provide all chats
@@ -133,7 +138,7 @@ class Bot
       @contextFromSession(session).then (context) ->
         promise.try -> cb(context)
       .then =>
-        @sessionManager.save(session.meta.userId, session)
+        @sessionManager.save(session.meta.sessionId, session)
 
 _.extend(Bot::, mixins)
 

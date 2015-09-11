@@ -60,7 +60,7 @@ class Context
   # @param text
   sendMessage: (text, params) ->
     @_withMiddlewares =>
-      @_api.sendMessage(@_userId, prepareText(text), @_prepareParams(params))
+      @_api.sendMessage(@meta.chatId, prepareText(text), @_prepareParams(params))
 
   # send message
   # @param {String} key
@@ -73,7 +73,7 @@ class Context
 
   sendPhoto: (photo, params) ->
     @_withMiddlewares =>
-      @_api.sendPhoto(@_userId, photo, @_prepareParams(params))
+      @_api.sendPhoto(@meta.chatId, photo, @_prepareParams(params))
 
   forwardMessage: ->
     @_withMiddlewares =>

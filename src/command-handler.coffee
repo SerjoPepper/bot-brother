@@ -17,6 +17,8 @@ class CommandHandler
     @type = if @name then 'invoke' else null # 'invoke' or 'answer'
     @isRedirected = !!params.prevHandler
     @session.meta ||= {userId: @message.from.id} # current, prev, from, chat
+    @session.meta.chatId ||= @provideChatId()
+    @session.meta.sessionId ||= @provideSessionId()
     @session.data ||= {} # user data
     @session.backHistory || = {}
     @prevHandler = params.prevHandler
@@ -33,6 +35,21 @@ class CommandHandler
 
   getLocale: ->
     @locale
+
+  provideChatId: ->
+    if @message?.chat
+      @message.chat.id
+    else
+      @session.meta.userId
+
+  provideSessionId: ->
+    if @message?.chat
+      if @message.chat.id is @message.from.id
+        @message.from.id
+      else
+        @message.chat.id + ':' + @message.from.id
+    else
+      @session.meta.userId
 
   handle: ->
     if @message && !@prevHandler
