@@ -4,7 +4,7 @@ SessionManager = require './session-manager'
 constants = require './constants'
 mixins = require './mixins'
 _ = require 'lodash'
-redis = require 'node-redis'
+redis = require 'redis'
 promise =require 'bluebird'
 Api = require 'node-telegram-bot-api'
 
