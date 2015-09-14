@@ -1,4 +1,3 @@
-redis = require 'node-redis'
 promise = require 'bluebird'
 jsonfn = require 'json-fn'
 
