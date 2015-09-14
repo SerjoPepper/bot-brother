@@ -1,5 +1,6 @@
 promise = require 'bluebird'
 jsonfn = require 'json-fn'
+redis = require 'redis'
 
 PREFIX = 'BOT_SESSIONS'
 
