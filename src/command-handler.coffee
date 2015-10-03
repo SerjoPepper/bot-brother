@@ -107,8 +107,9 @@ class CommandHandler
       # если в ответе есть обработчик - исполняем его
       if stage is 'answer' and (@answer?.handler? || @answer?.go?)
         if @answer?.go?
-          go = @answer?.go
-          @answer.handler = (ctx) -> ctx.go(go)
+          go = @answer.go
+          args = @answer.args
+          @answer.handler = (ctx) -> ctx.go(go, {args: args})
         @executeMiddleware(@answer.handler)
       else
         @executeStage(stage)

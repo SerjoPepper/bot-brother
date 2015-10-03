@@ -110,7 +110,7 @@ class Keyboard
         text = emoji.emojify(text)
         if !column.isShown || column.isShown(handler.context)
           markupRow.push(text)
-          map[text] = {handler: column.handler, value: column.value, go: column.go}
+          map[text] = {handler: column.handler, value: column.value, go: column.go, args: column.args}
       markup.push(markupRow) if markupRow.length
 
     {markup: markup, map: map}
