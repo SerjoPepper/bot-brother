@@ -16,7 +16,8 @@ class CommandHandler
     @session = params.session || {}
     @type = if @name then 'invoke' else null # 'invoke' or 'answer'
     @isRedirected = !!params.prevHandler
-    @session.meta ||= {userId: @message.from.id} # current, prev, from, chat
+    @session.meta ||= {} # current, prev, from, chat
+    @session.meta.userId ||= @message?.from.id
     @session.meta.chatId ||= @provideChatId()
     @session.meta.sessionId ||= @provideSessionId()
     @session.data ||= {} # user data
