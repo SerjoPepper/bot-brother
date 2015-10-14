@@ -26,6 +26,7 @@ class CommandHandler
     @noChangeHistory = params.noChangeHistory
     @args = params.args
     @chain = []
+    @middlewaresChains = []
 
     @isSynthetic = params.isSynthetic || @isRedirected
     @command = null # main command
