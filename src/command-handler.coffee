@@ -25,6 +25,7 @@ class CommandHandler
     @prevHandler = params.prevHandler
     @noChangeHistory = params.noChangeHistory
     @args = params.args
+    @chain = []
 
     @isSynthetic = params.isSynthetic || @isRedirected
     @command = null # main command
