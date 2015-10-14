@@ -143,8 +143,8 @@ class Context
   _withMiddlewares: (cb) ->
     @_handler.executeStage('beforeSend').then ->
       cb()
-    .then =>
-      @_handler.executeStage('afterSend')
+    .then (result) =>
+      @_handler.executeStage('afterSend').then -> result
 
   _prepareParams: (params = {}) ->
     markup = @_provideKeyboardMarkup()
