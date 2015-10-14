@@ -150,7 +150,7 @@ class Context
     markup = @_provideKeyboardMarkup()
     _params = {}
     if params.caption
-      params.caption = @prepareText(params.caption)
+      params.caption = prepareText(params.caption)
     if markup
       _params.reply_markup = JSON.stringify(markup)
     _.extend(_params, params)
