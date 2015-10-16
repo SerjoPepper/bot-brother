@@ -50,15 +50,13 @@ class Bot
   # Returns middlewares for handling
   # @param {String} commandName the command name
   # @param {Object} params params
-  # @option params {Boolean} includeParents include or not parent commands
   # @return {Object} middlewares structured by types
   getCommandsChain: (commandName, params = {}) ->
     return [] unless commandName
-    commands = @commands
+    commands = @commands.slice().reverse()
     .filter (command) ->
       command.name is commandName or
-        _.isRegExp(command.name) and command.name.test(commandName) or
-        params.includeParents && _.isString(command.name) && commandName.indexOf(command.name + '_') is 0
+        _.isRegExp(command.name) and command.name.test(commandName)
     .sort ({name: name1}, {name: name2}) ->
       [val1, val2] = [name1, name2].map (c) ->
         if _.isRegExp(c) then 0 else if c != commandName then -1 else 1

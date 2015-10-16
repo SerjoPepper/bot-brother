@@ -72,7 +72,7 @@ class CommandHandler
     @commandsChain = @bot.getCommandsChain(@name)
     if _.isString(@commandsChain[0]?.name)
       @command = @commandsChain[0]
-    @chain = @bot.getCommandsChain(@name, includeParent: true, includeBot: true)
+    @chain = @bot.getCommandsChain(@name, includeBot: true)
 
     if @commandsChain.length
       if @type is 'invoke'
@@ -84,12 +84,21 @@ class CommandHandler
 
     return if !@name && !@synthetic
 
-    if @type is 'answer' && @session.keyboardMap
-      @answer = @session.keyboardMap[@message.text]
-      if !@answer && !@command?.compliantKeyboard
-        return
+    if @type is 'answer'
+      @args = @session.invokeArgs
+      unless _.isEmpty(@session.keyboardMap)
+        @answer = @session.keyboardMap[@message.text]
+        unless @answer?
+          if @command?.compliantKeyboard
+            @answer = value: @message.text
+          else
+            return
+      else
+        @answer = value: @message.text
+
 
     if @type is 'invoke'
+      @session.invokeArgs = @args
       if !@noChangeHistory && @prevHandler?.name
         @session.backHistory[@name] = @prevHandler.name
       @session.meta.current = @name
@@ -97,6 +106,7 @@ class CommandHandler
       @session.meta.userId = @message?.from?.id || @session.meta.userId
 
     @middlewaresChains = @bot.getMiddlewaresChains(@commandsChain)
+
     @context.init()
 
     promise.resolve(
@@ -199,6 +209,7 @@ class CommandHandler
       @session.keyboardMap = map
       markup
     else
+      @session.keyboardMap = {}
       null
 
 
