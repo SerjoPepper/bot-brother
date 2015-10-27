@@ -106,14 +106,12 @@ class Bot
     @commands.push(command)
     command
 
-
   contextFromSession: (session) ->
     promise.try =>
       handler = new CommandHandler(bot: @, session: session, isSynthetic: true)
       handler.context
 
-
-  # find chat by id
+  # sessionId can be chat_id or chat_id:user_id for group chats
   withContext: (sessionId, cb) ->
     @sessionManager.get(sessionId).then (session) =>
       @contextFromSession(session).then (context) ->
@@ -121,7 +119,7 @@ class Bot
       .then =>
         @sessionManager.save(sessionId, session)
 
-  # find chats by ids
+  # sessionId can be chat_id or chat_id:user_id for group chats
   withContexts: (ids, cb) ->
     @sessionManager.getMultiple(ids).map (session) =>
       @contextFromSession(session).then (context) ->
@@ -130,13 +128,13 @@ class Bot
         @sessionManager.save(session.meta.sessionId, session)
 
 
-  # provide all chats
-  withAllContexts: (handler) ->
-    @sessionManager.getAll().map (session) =>
-      @contextFromSession(session).then (context) ->
-        promise.try -> cb(context)
-      .then =>
-        @sessionManager.save(session.meta.sessionId, session)
+  # # provide all chats
+  # withAllContexts: (handler) ->
+  #   @sessionManager.getAll().map (session) =>
+  #     @contextFromSession(session).then (context) ->
+  #       promise.try -> cb(context)
+  #     .then =>
+  #       @sessionManager.save(session.meta.sessionId, session)
 
 _.extend(Bot::, mixins)
 
