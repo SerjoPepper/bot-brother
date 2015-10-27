@@ -7,6 +7,8 @@ prepareText = (text) ->
 
 RESTRICTED_PROPS = ['isRedirected', 'isSynthetic', 'message', 'session', 'bot', 'command', 'isEnded']
 
+# TODO оставить в context только следующие поля: message, session, bot, command, meta, data
+
 class Context
 
   constructor: (handler) ->

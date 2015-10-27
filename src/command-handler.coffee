@@ -185,6 +185,7 @@ class CommandHandler
     locale = @getLocale()
     chain = @getFullChain()
     data = @context.data
+    keyboard = null
     if _.isUndefined(name)
       keyboards = [
         @context.getKeyboard(null, locale)
@@ -196,9 +197,7 @@ class CommandHandler
         unless _.isUndefined(kb)
           keyboard = kb
           break
-    else if !name?
-      return null
-    else
+    if !keyboard
       for command in chain
         keyboard = command.getKeyboard(name, locale)
         break if keyboard

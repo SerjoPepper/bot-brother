@@ -74,4 +74,5 @@ module.exports =
 
 
   getMiddlewares: (type) ->
+    @_middlewares ||= {}
     @_middlewares[type] || []
