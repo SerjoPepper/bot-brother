@@ -28,8 +28,8 @@ class CommandHandler
     @chain = []
     @middlewaresChains = []
 
-    @isSynthetic = params.isSynthetic || @isRedirected
-    @command = null # main command
+    @isSynthetic = params.isSynthetic
+    @command = null
     @context = @prevHandler?.context.clone(@) || new Context(@)
 
   setLocale: (locale) ->
@@ -162,7 +162,7 @@ class CommandHandler
         middleware(@context)
 
   go: (name, params = {}) ->
-    message = _.pick(@message, 'from', 'chat')
+    message = _.extend({}, @message)
     handler = new CommandHandler({
       message: message
       bot: @bot
@@ -171,6 +171,7 @@ class CommandHandler
       name: name
       noChangeHistory: params.noChangeHistory
       args: params.args
+      isSynthetic: @isSynthetic
     })
     handler.handle()
 
