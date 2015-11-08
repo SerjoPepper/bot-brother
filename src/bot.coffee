@@ -8,49 +8,46 @@ redis = require 'redis'
 promise =require 'bluebird'
 Api = require 'node-telegram-bot-api'
 
+
+###
+Bot class
+
+@property {String} key bot telegram key
+@property {Number} id bot id
+@property {Object} api telegram bot api
+###
 class Bot
 
+  ###
+  @param {Object} config config
+  @option config {String} key telegram bot token
+  @option config {Object} [redis] redis config; see https://github.com/NodeRedis/node_redis#options-is-an-object-with-the-following-possible-properties
+  @option config {Object} [redis.client] redis client
+  @option config {Object} [webHook] config for webhook
+  @option config {String} [webHook.url] webook url
+  @option config {String} [webHook.key] PEM private key to webHook server
+  @option config {String} [webHook.cert] PEM certificate key to webHook server
+  @option config {Number} [webHook.port] port for node.js server
+  @option config {Boolean} [webHook.https] create secure node.js server
+  ###
   constructor: (config) ->
     @config = config
-    @config.redis ||= {}
+    @config.redis ||= {host: '127.0.0.1', port: '6379'}
     @sessionManager = @config.sessionManager || new SessionManager(@)
-    # bot api key
     @key = @config.key
-    # bot id
-    @id = @key.match(/^\d+/)?[0] || @key
+    @id = Number(@key.match(/^\d+/)?[0])
     @redis = @config.redis.client || redis.createClient(@config.redis)
     @commands = []
     @_initApi()
 
 
-  _initApi: ->
-    @api?.destroy()
-    @api = new Api(@key, @_isListen && {polling: @config.polling || true})
-    if @_isListen
-      @api.on 'message', (msg) =>
-        @_handleMessage(msg).catch (err) ->
-          console.error(err, err.stack)
-
-  _provideSessionId: (message) ->
-    if message.chat.id is message.from.id
-      message.from.id
-    else
-      message.chat.id + ':' + message.from.id
-
-  _handleMessage: (message) ->
-    sessionId = @_provideSessionId(message)
-    @sessionManager.get(sessionId).then (session) =>
-      handler = new CommandHandler(message: message, bot: @, session: session)
-      promise.try ->
-        handler.handle()
-      .then =>
-        @sessionManager.save(sessionId, handler.session)
-
-
-  # Returns middlewares for handling
-  # @param {String} commandName the command name
-  # @param {Object} params params
-  # @return {Object} middlewares structured by types
+  ###
+  Returns middlewares for handling.
+  @param {String} commandName the command name
+  @param {Object} [params] params
+  @option params {Boolean} [includeBot] include bot middleware layer
+  @return {Array} middlewares
+  ###
   getCommandsChain: (commandName, params = {}) ->
     return [] unless commandName
     commands = @commands.slice().reverse()
@@ -68,7 +65,12 @@ class Bot
       commands.push(@)
     commands
 
-  # Return middlewares object
+
+  ###
+  Return middlewares object.
+  @param {Array} commands chain array
+  @return {Object} middlewares object grouped by stages
+  ###
   getMiddlewaresChains: (commandsChain) ->
     commands = commandsChain.concat([@]) # adding bot middlewares
     middlewares = {}
@@ -83,58 +85,143 @@ class Bot
     middlewares
 
 
+  ###
+  Return default command.
+  @return {Command}
+  ###
   getDefaultCommand: ->
     _.find(@commands, {isDefault: true})
 
 
-  listenUpdates: ->
-    @_isListen = true
-    @_initApi()
-    @
-
-
-  stopListenUpdates: ->
-    @_isListen = false
-    @_initApi()
-    @
-
-
-  # register new command
-  # name - regex or string
+  ###
+  Register new command.
+  @param {String|RegExp} name command name
+  @param {Object} [options] options command options
+  @option options {Boolean} [isDefault] is command default or not
+  @option options {Boolean} [compliantKeyboard] handle answers not from keyboard
+  @return {Command}
+  ###
   command: (name, options = {}) ->
     command = new Command(name, _.extend({}, bot: @, options))
     @commands.push(command)
     command
 
+  ###
+  @param {Object} session session object
+  @return {Promise} return context
+  ###
   contextFromSession: (session) ->
     promise.try =>
       handler = new CommandHandler(bot: @, session: session, isSynthetic: true)
       handler.context
 
-  # sessionId can be chat_id or chat_id:user_id for group chats
-  withContext: (sessionId, cb) ->
+
+  ###
+  Invoke callback in context.
+  @param {String} chatId
+  @param {Function} cb function that invoke with context parameter. Should return promise.
+  @return {Promise}
+  ###
+  withContext: (chatId, cb) ->
     @sessionManager.get(sessionId).then (session) =>
       @contextFromSession(session).then (context) ->
         promise.try -> cb(context)
       .then =>
         @sessionManager.save(sessionId, session)
 
-  # sessionId can be chat_id or chat_id:user_id for group chats
-  withContexts: (ids, cb) ->
-    @sessionManager.getMultiple(ids).map (session) =>
+
+  ###
+  Same as withContext, but with multiple ids.
+  @param {Array<String>} chatIds
+  @param {Function} cb function that invoke per each context
+  ###
+  withContexts: (chatIds, cb) ->
+    @sessionManager.getMultiple(chatIds).map (session) =>
+      @contextFromSession(session).then (context) ->
+        promise.try -> cb(context)
+      .then =>
+        @sessionManager.save(session.meta.sessionId, session)
+
+  ###
+  Same as withContexts, but with all chats.
+  @param {Function} cb function that invoke per each context
+  ###
+  withAllContexts: (cb) ->
+    @sessionManager.getAll().map (session) =>
       @contextFromSession(session).then (context) ->
         promise.try -> cb(context)
       .then =>
         @sessionManager.save(session.meta.sessionId, session)
 
 
-  # # provide all chats
-  # withAllContexts: (handler) ->
-  #   @sessionManager.getAll().map (session) =>
-  #     @contextFromSession(session).then (context) ->
-  #       promise.try -> cb(context)
-  #     .then =>
-  #       @sessionManager.save(session.meta.sessionId, session)
+  ###
+  Start listen updates via polling or web hook
+  @return {Bot}
+  ###
+  listenUpdates: ->
+    @_isListen = true
+    @_initApi()
+    @
+
+
+  ###
+  Stop listen updates via polling or web hook
+  @return {Bot}
+  ###
+  stopListenUpdates: ->
+    @_isListen = false
+    @_initApi()
+    @
+
+
+  _initApi: ->
+    @api?.destroy()
+    options = {}
+    if @_isListen
+      if @config.webHook
+        options.webHook = @config.webHook
+        if @config.secure is false
+          delete options.webHook.key
+      else
+        options.polling = true
+    @api = new Api(@key, options)
+    if @_isListen
+      @api.on 'message', (msg) =>
+        @_handleMessage(msg).catch (err) ->
+          console.error(err, err.stack)
+      if @config.webHook
+        @_setWebhook()
+      else
+        @_unsetWebhook()
+    # _.defer =>
+    #   unless @_isListen
+    #     @_unsetWebhook()
+
+
+  _unsetWebhook: ->
+    @api.setWebHook('')
+
+
+  _setWebhook: ->
+    @api.setWebHook(@config.webHook.url, @config.webHook.cert)
+
+
+  _provideSessionId: (message) ->
+    if message.chat.id is message.from.id
+      message.from.id
+    else
+      message.chat.id + ':' + message.from.id
+
+
+  _handleMessage: (message) ->
+    sessionId = @_provideSessionId(message)
+    @sessionManager.get(sessionId).then (session) =>
+      handler = new CommandHandler(message: message, bot: @, session: session)
+      promise.try ->
+        handler.handle()
+      .then =>
+        @sessionManager.save(sessionId, handler.session)
+
 
 _.extend(Bot::, mixins)
 

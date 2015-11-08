@@ -3,7 +3,7 @@ botanio = require 'botanio'
 module.exports.botanio = (key) ->
   botan = botanio(key)
   (context) ->
-    if !context.isBotanioTracked && context.message?.from && !context.isSynthetic && !context.isRedirected
+    if !context.isBotanioTracked && !context.isSynthetic && !context.isRedirected
       context.isBotanioTracked = true
       botan.track(context.message, context.command.name)
       return

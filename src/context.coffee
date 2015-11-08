@@ -5,10 +5,21 @@ mixins = require './mixins'
 prepareText = (text) ->
   emoji.emojify(text)
 
-RESTRICTED_PROPS = ['isRedirected', 'isSynthetic', 'message', 'session', 'bot', 'command', 'isEnded']
+RESTRICTED_PROPS = ['isRedirected', 'isSynthetic', 'message', 'session', 'bot', 'command', 'isEnded', 'meta']
 
-# TODO оставить в context только следующие поля: message, session, bot, command, meta, data
+###
+Context of the bot command
 
+@property {Bot} bot
+@property {Object} session
+@property {Message} message telegram message
+@property {Boolean} isRedirected
+@property {Boolean} isSynthetic this context created with .withContext handler
+@property {Boolean} isEnded this command is ended
+@property {Object} data template data
+@property {Object} meta meta information
+@property {Object} command object tha represent current command. Has follow fields: name, args, type. Where type is 'answer' or 'invoke'
+###
 class Context
 
   constructor: (handler) ->
@@ -26,10 +37,13 @@ class Context
     }
     @_handler = handler
     @_api = @_handler.bot.api
-    @_userId = @_handler.session.meta.userId
+    @_user = @_handler.session.meta.user
     @_temp = {} # dont clone
     @data = {} # template data
 
+  ###
+  Initialize
+  ###
   init: ->
     @command = {
       name: @_handler.name
@@ -38,115 +52,258 @@ class Context
     }
     @answer = @_handler.answer?.value
 
+
+  ###
+  Hide keyboard
+  ###
   hideKeyboard: ->
     @useKeyboard(null)
 
-  # использовать предыдущую клавиатуру
+
+  ###
+  Use previous state keyboard
+  @return {Context} this
+  ###
   usePrevKeyboard: ->
     @_temp.usePrevKeyboard = true
     @
 
+
+  ###
+  Use named keyboard
+  @return {Context} this
+  ###
   useKeyboard: (name) ->
     @_temp.keyboardName = name
     @
 
-  getUserProfilePhotos: (offset = 0, limit = 1) ->
-    @bot.api.getUserProfilePhotos(@_userId, offset, limit)
 
-  # render string
-  # options.strict
+  ###
+  Use this method to get a list of profile pictures for a user.
+  Returns a [UserProfilePhotos](https://core.telegram.org/bots/api#userprofilephotos) object.
+  @param  {Number} [offset=0] Sequential number of the first photo to be returned. By default, offset is 0.
+  @param  {Number} [limit=1] Limits the number of photos to be retrieved. Values between 1—100 are accepted. Defaults to 1.
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#getuserprofilephotos
+  ###
+  getUserProfilePhotos: (offset = 0, limit = 1) ->
+    @bot.api.getUserProfilePhotos(@_user.id, offset, limit)
+
+
+  ###
+  Render text
+  @param {String} key text or key from localization dictionary
+  @param {Object} options
+  ###
   render: (key, options) ->
     @_handler.renderText(key, @data, options)
 
-  # send plain text, no rendered
-  # @param text
-  sendMessage: (text, params) ->
-    @_withMiddlewares =>
-      @_api.sendMessage(@meta.chatId, prepareText(text), @_prepareParams(params))
 
-  # send message
-  # @param {String} key
-  # @param {Object} params
-  # @option params {String} keyboard custom keyboard
+  ###
+  Send message
+  @param {String} text text or key from localization dictionary
+  @param {Object} params additional telegram params
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#sendmessage
+  ###
+  sendMessage: (text, params = {}) ->
+    if params.render != false
+      text = @render(text)
+    @_withMiddlewares =>
+      @_api.sendMessage(@meta.chat.id, prepareText(text), @_prepareParams(params))
+
+
+  ###
+  Same as sendMessage
+  ###
   sendText: (key, params) ->
-    text = @render(key)
-    @sendMessage(text, params)
-      # TODO
+    @sendMessage(key, params)
 
-  sendPhoto: (photo, params) ->
+
+  ###
+  Send photo
+  @param {String|stream.Stream} photo A file path or a Stream. Can also be a 'file_id' previously uploaded
+  @param  {Object} [params] Additional Telegram query options
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#sendphoto
+  ###
+  sendPhoto: (photo, params = {}) ->
+    if params.caption
+      if params.render != false
+        params.caption = @render(params.caption)
+      params.caption = prepareText(params.caption)
     @_withMiddlewares =>
-      @_api.sendPhoto(@meta.chatId, photo, @_prepareParams(params))
+      @_api.sendPhoto(@meta.chat.id, photo, @_prepareParams(params))
 
-  forwardMessage: ->
+
+  ###
+  Forward message
+  @param  {Number|String} fromChatId Unique identifier for the chat where the
+  original message was sent
+  @param  {Number|String} messageId  Unique message identifier
+  @return {Promise}
+  ###
+  forwardMessage: (fromChatId, messageId) ->
     @_withMiddlewares =>
-      @_api.forwardMessage()
-      # TODO
+      @_api.forwardMessage(@meta.chat.id, fromChatId, messageId)
 
-  sendAudio: ->
+
+  ###
+  Send audio
+  @param  {String|stream.Stream} audio A file path or a Stream. Can also be a `file_id` previously uploaded.
+  @param  {Object} [params] Additional Telegram query options
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#sendaudio
+  ###
+  sendAudio: (audio, params) ->
     @_withMiddlewares =>
-      @_api.sendAudio()
-      # TODO
+      @_api.sendAudio(@meta.chat.id, audio, @_prepareParams(params))
 
-  sendDocument: ->
+
+  ###
+  Send Document
+  @param  {String|stream.Stream} doc A file path or a Stream. Can also be a `file_id` previously uploaded.
+  @param  {Object} [params] Additional Telegram query options
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#sendDocument
+  ###
+  sendDocument: (doc, params) ->
     @_withMiddlewares =>
-      @_api.sendDocument()
-      # TODO
+      @_api.sendDocument(@meta.chat.id, doc, @_prepareParams(params))
 
-  sendSticker: ->
+
+  ###
+  Send .webp stickers.
+  @param  {String|stream.Stream} sticker A file path or a Stream. Can also be a `file_id` previously uploaded.
+  @param  {Object} [params] Additional Telegram query options
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#sendsticker
+  ###
+  sendSticker: (sticker, params) ->
     @_withMiddlewares =>
-      @_api.sendSticker()
-      # TODO
+      @_api.sendSticker(@meta.chat.id, sticker, @_prepareParams(params))
 
-  sendVideo: ->
+
+  ###
+  Send video files, Telegram clients support mp4 videos (other formats may be sent with `sendDocument`)
+  @param  {String|stream.Stream} video A file path or a Stream. Can also be a `file_id` previously uploaded.
+  @param  {Object} [params] Additional Telegram query options
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#sendvideo
+  ###
+  sendVideo: (video, params) ->
     @_withMiddlewares =>
-      @_api.sendVideo()
-      # TODO
+      @_api.sendVideo(@meta.chat.id, video, @_prepareParams(params))
 
-  sendChatAction: ->
+
+  ###
+  Send chat action.
+  `typing` for text messages,
+  `upload_photo` for photos, `record_video` or `upload_video` for videos,
+  `record_audio` or `upload_audio` for audio files, `upload_document` for general files,
+  `find_location` for location data.
+  @param  {Number|String} chatId  Unique identifier for the message recipient
+  @param  {String} action Type of action to broadcast.
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#sendchataction
+  ###
+  sendChatAction: (action) ->
     @_withMiddlewares =>
-      @_api.chatAction()
-      # TODO
+      @_api.chatAction(@meta.chat.id, action)
 
-  sendLocation: ->
+
+  ###
+  Send location.
+  Use this method to send point on the map.
+  @param  {Float} latitude Latitude of location
+  @param  {Float} longitude Longitude of location
+  @param  {Object} [params] Additional Telegram query options
+  @return {Promise}
+  @see https://core.telegram.org/bots/api#sendlocation
+  ###
+  sendLocation: (latitude, longitude, params) ->
     @_withMiddlewares =>
-      @_api.sendLocation()
-      # TODO
+      @_api.sendLocation(@meta.chat.id, latitude, longitude, @_prepareParams(params))
 
-  # устанавливаем локаль
+
+  ###
+  Set locale for context
+  @param {String} locale Locale
+  ###
   setLocale: (locale) ->
     @_handler.setLocale(locale)
 
+
+  ###
+  Get current context locale
+  @return {String}
+  ###
   getLocale: ->
     @_handler.getLocale()
 
+
+  ###
+  Go to certain command
+
+  @param {String} name command name
+  @param {Object} params params
+  @option params {Array<String>} [args] Arguments for command
+  @option params {Boolean} [noChangeHistory] No change chain history
+  @return {Promise}
+  ###
   go: (name, params) ->
     @_handler.go(name, params)
 
+
+  ###
+  Go to parent command.
+  @return {Promise}
+  ###
   goParent: ->
     @go(@_handler.name.split('_').slice(0, -1).join('_') || @_handler.name)
 
+
+  ###
+  Go to previous command.
+  @return {Promise}
+  ###
   goBack: ->
     @go(@_handler.getPrevStateName(), {noChangeHistory: true})
 
+
+  ###
+  Repeat current command
+  @return {Promise}
+  ###
   repeat: ->
     @go(@_handler.name, {noChangeHistory: true, args: @command.args})
 
-  # не обрабатываем дальше цепочку middleware
+
+  ###
+  Break middlewares chain
+  ###
   end: ->
     @isEnded = true
 
 
+  ###
+  Clone context
+  @param {CommandHandler} handler Command handler for new context
+  @return {Context}
+  ###
   clone: (handler) ->
     res = new Context(handler)
     setProps = Object.getOwnPropertyNames(@).filter (prop) ->
       !(prop in RESTRICTED_PROPS || prop.indexOf('_') is 0)
     _.extend(res, _.pick(@, setProps))
 
+
   _withMiddlewares: (cb) ->
     @_handler.executeStage('beforeSend').then ->
       cb()
     .then (result) =>
       @_handler.executeStage('afterSend').then -> result
+
 
   _prepareParams: (params = {}) ->
     markup = @_provideKeyboardMarkup()
@@ -157,11 +314,13 @@ class Context
       _params.reply_markup = JSON.stringify(markup)
     _.extend(_params, params)
 
+
   _renderKeyboard: ->
     if @_temp.keyboardName is null
       null
     else
       @_handler.renderKeyboard(@_temp.keyboardName)
+
 
   _provideKeyboardMarkup: ->
     if @_temp.usePrevKeyboard

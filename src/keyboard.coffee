@@ -18,8 +18,8 @@ Keyboard examples
   ], [
     {'text.key': {go: 'state.name'}}
     {'text.key': {go: 'state.name'}}
-    {'text.key': ($) -> $.goBack()}
-    {'text.key': ($) -> $.goParent()}
+    {'text.key': (ctx) -> $.goBack()}
+    {'text.key': (ctx) -> $.goParent()}
     {'text.key': {handler: ($) -> $.goParent(), isShown: (ctx) -> ctx.data.user.age > 18}}
   ],
   'keyboardTemplate' # embed keyboard

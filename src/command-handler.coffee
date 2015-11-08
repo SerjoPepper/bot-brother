@@ -6,8 +6,16 @@ _ = require 'lodash'
 emoji = require 'node-emoji'
 ejs = require 'ejs'
 
+###
+CommandHandler class
+Creates for each incoming request.
+###
 class CommandHandler
 
+
+  ###
+  @param {Object} params the command handler params
+  ###
   constructor: (params) ->
     @name = params.name
     @message = params.message
@@ -17,8 +25,8 @@ class CommandHandler
     @type = if @name then 'invoke' else null # 'invoke' or 'answer'
     @isRedirected = !!params.prevHandler
     @session.meta ||= {} # current, prev, from, chat
-    @session.meta.userId ||= @message?.from?.id
-    @session.meta.chatId ||= @provideChatId()
+    @session.meta.user ||= @message?.from
+    @session.meta.chat ||= @message?.chat
     @session.meta.sessionId ||= @provideSessionId()
     @session.data ||= {} # user data
     @session.backHistory || = {}
@@ -32,28 +40,33 @@ class CommandHandler
     @command = null
     @context = @prevHandler?.context.clone(@) || new Context(@)
 
+
+  ###
+  @param {String} locale current locale
+  ###
   setLocale: (locale) ->
     @locale = locale
     @prevHandler?.setLocale(@locale)
 
+
+  ###
+  @return {String} current locale
+  ###
   getLocale: ->
     @locale
 
-  provideChatId: ->
-    if @message?.chat
-      @message.chat.id
-    else
-      @session.meta.userId
 
+  ###
+  @return {String} sessionId
+  ###
   provideSessionId: ->
-    if @message?.chat
-      if @message.chat.id is @message.from.id
-        @message.from.id
-      else
-        @message.chat.id + ':' + @message.from.id
-    else
-      @session.meta.userId
+    @session.meta.chat.id
 
+
+  ###
+  Start handling message
+  @return {Promise}
+  ###
   handle: ->
     if @message && !@prevHandler
       if @message?.text
@@ -96,14 +109,13 @@ class CommandHandler
       else
         @answer = value: @message.text
 
-
     if @type is 'invoke'
       @session.invokeArgs = @args
       if !@noChangeHistory && @prevHandler?.name
         @session.backHistory[@name] = @prevHandler.name
       @session.meta.current = @name
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
-      @session.meta.userId = @message?.from?.id || @session.meta.userId
+      @session.meta.user = @message?.from || @session.meta.user
 
     @middlewaresChains = @bot.getMiddlewaresChains(@commandsChain)
 
@@ -127,9 +139,21 @@ class CommandHandler
       else
         @executeStage(stage)
 
+
+  ###
+  @return {Array} full command chain
+  ###
   getFullChain: ->
     [@context].concat(@chain)
 
+
+  ###
+  Render text
+  @param {String} key localization key
+  @param {Object} data template data
+  @param {Object} [options] options
+  @return {String}
+  ###
   renderText: (key, data, options = {}) ->
     locale = @getLocale()
     chain = @getFullChain()
@@ -145,22 +169,34 @@ class CommandHandler
       ejs.compile(key)(data)
     text
 
+
+  ###
+  @param {String} stage
+  @return {Promise}
+  ###
   executeStage: (stage) ->
     promise.resolve(@middlewaresChains[stage] || []).each (middleware) =>
       @executeMiddleware(middleware)
 
+
+  ###
+  @param {Function} middleware
+  @return {Promise}
+  ###
   executeMiddleware: (middleware) ->
-    # next = null
-    # cbPromise = promise.fromNode((cb) -> next = cb)
-    # resPromise = middleware(@context, (err) -> next(err))
-    # if typeof resPromise?.then is 'function'
-    #   resPromise
-    # else
-    #   cbPromise
     promise.try =>
       unless @context.isEnded
         middleware(@context)
 
+
+  ###
+  Go to command
+
+  @param {String} name command name
+  @param {Object} params params
+  @option params {Array<String>} [args] Arguments for command
+  @option params {Boolean} [noChangeHistory] No change chain history
+  ###
   go: (name, params = {}) ->
     message = _.extend({}, @message)
     handler = new CommandHandler({
@@ -175,13 +211,17 @@ class CommandHandler
     })
     handler.handle()
 
+  ###
+  @return {String} Previous state name
+  ###
   getPrevStateName: ->
     @session.backHistory[@name]
 
-  # Render keyboard
-  # @param {Object} data a data to render keyboard
-  # @param {String} name custom keyboard name
-  # @return {Object} object contains 'map' and 'markup' fields
+  ###
+  Render keyboard
+  @param {String} name custom keyboard name
+  @return {Object} keyboard array of keyboard
+  ###
   renderKeyboard: (name) ->
     locale = @getLocale()
     chain = @getFullChain()
