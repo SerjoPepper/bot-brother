@@ -5,7 +5,7 @@ constants = require './constants'
 mixins = require './mixins'
 _ = require 'lodash'
 redis = require 'redis'
-promise =require 'bluebird'
+promise = require 'bluebird'
 Api = require 'node-telegram-bot-api'
 
 
