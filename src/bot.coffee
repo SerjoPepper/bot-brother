@@ -123,11 +123,11 @@ class Bot
   @return {Promise}
   ###
   withContext: (chatId, cb) ->
-    @sessionManager.get(sessionId).then (session) =>
+    @sessionManager.get(chatId).then (session) =>
       @contextFromSession(session).then (context) ->
         promise.try -> cb(context)
       .then =>
-        @sessionManager.save(sessionId, session)
+        @sessionManager.save(chatId, session)
 
 
   ###
