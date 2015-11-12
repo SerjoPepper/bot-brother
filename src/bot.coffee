@@ -37,6 +37,7 @@ class Bot
     @key = @config.key
     @id = Number(@key.match(/^\d+/)?[0])
     @redis = @config.redis.client || redis.createClient(@config.redis)
+    @redis.select(@config.redis.db) if @config.redis.db
     @commands = []
     @_initApi()
 
