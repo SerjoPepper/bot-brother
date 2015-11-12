@@ -33,7 +33,7 @@ class CommandHandler
     @prevHandler = params.prevHandler
     @noChangeHistory = params.noChangeHistory
     @args = params.args
-    @chain = []
+    @chain = [@bot]
     @middlewaresChains = @bot.getMiddlewaresChains([])
 
     @isSynthetic = params.isSynthetic
