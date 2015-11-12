@@ -117,7 +117,8 @@ class Bot
   contextFromSession: (session) ->
     promise.try =>
       handler = new CommandHandler(bot: @, session: session, isSynthetic: true)
-      handler.context
+      handler.handle().then ->
+        handler.context
 
 
   ###
