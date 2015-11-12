@@ -252,6 +252,7 @@ class Context
   @return {Promise}
   ###
   go: (name, params) ->
+    @end()
     @_handler.go(name, params)
 
 
