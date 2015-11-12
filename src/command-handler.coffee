@@ -40,7 +40,8 @@ class CommandHandler
     @command = null
     @context = @prevHandler?.context.clone(@) || new Context(@)
 
-
+    if @isSynthetic
+      @type = 'synthetic'
   ###
   @param {String} locale current locale
   ###
@@ -78,7 +79,7 @@ class CommandHandler
         else
           @type = 'answer'
           @name = @session.meta?.current
-      else
+      else if !@isSynthetic
         @type = 'answer'
         @name = @session.meta?.current
 
@@ -90,12 +91,12 @@ class CommandHandler
     if @commandsChain.length
       if @type is 'invoke'
         @args ||= params?[1..] || []
-    else
+    else if !@isSynthetic
       @type = 'invoke'
       @name = @bot.getDefaultCommand()?.name
       @commandsChain = @bot.getCommandsChain(@name)
 
-    return if !@name && !@synthetic
+    return if !@name && !@isSynthetic
 
     if @type is 'answer'
       @args = @session.invokeArgs
@@ -207,7 +208,6 @@ class CommandHandler
       name: name
       noChangeHistory: params.noChangeHistory
       args: params.args
-      isSynthetic: @isSynthetic
     })
     handler.handle()
 

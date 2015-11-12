@@ -49,7 +49,11 @@ class Bot
   @return {Array} middlewares
   ###
   getCommandsChain: (commandName, params = {}) ->
-    return [] unless commandName
+    unless commandName
+      if params.includeBot
+        return [@]
+      else
+        []
     commands = @commands.slice().reverse()
     .filter (command) ->
       command.name is commandName or
