@@ -34,7 +34,7 @@ class CommandHandler
     @noChangeHistory = params.noChangeHistory
     @args = params.args
     @chain = []
-    @middlewaresChains = []
+    @middlewaresChains = @bot.getMiddlewaresChains([])
 
     @isSynthetic = params.isSynthetic
     @command = null
