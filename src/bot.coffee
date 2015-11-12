@@ -207,10 +207,7 @@ class Bot
 
 
   _provideSessionId: (message) ->
-    if message.chat.id is message.from.id
-      message.from.id
-    else
-      message.chat.id + ':' + message.from.id
+    message.chat.id
 
 
   _handleMessage: (message) ->

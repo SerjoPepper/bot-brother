@@ -111,7 +111,7 @@ class CommandHandler
 
     if @type is 'invoke'
       @session.invokeArgs = @args
-      if !@noChangeHistory && @prevHandler?.name
+      if !@noChangeHistory && @prevHandler?.name && @prevHandler.name != @name
         @session.backHistory[@name] = @prevHandler.name
       @session.meta.current = @name
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
@@ -227,21 +227,9 @@ class CommandHandler
     chain = @getFullChain()
     data = @context.data
     keyboard = null
-    if _.isUndefined(name)
-      keyboards = [
-        @context.getKeyboard(null, locale)
-        @context.getKeyboard()
-        @command.getKeyboard(null, locale)
-        @command.getKeyboard()
-      ]
-      for kb in keyboards
-        unless _.isUndefined(kb)
-          keyboard = kb
-          break
-    if !keyboard
-      for command in chain
-        keyboard = command.getKeyboard(name, locale)
-        break if keyboard
+    for command in chain
+      keyboard = command.getKeyboard(name, locale) || command.getKeyboard(name)
+      break if keyboard
 
     keyboard = keyboard?.render(locale, chain, data, @)
     if keyboard
