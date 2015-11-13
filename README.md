@@ -131,7 +131,7 @@ bot.listenUpdates();
 bot.use('before', function (ctx) {
   return findUserFromDbPromise(ctx.meta.user.id).then(function (user) {
     user.vehicle = user.vehicle || 'Car'
-    // you can set any field name, except follow:
+    // your can set any field name, except follow:
     // 1. fields, start with '_', like ctx._variable
     // 2. bot, session, message, isRedirected, isSynthetic, command, isEnded, meta
     ctx.user = user;
@@ -157,13 +157,25 @@ There are follow stages, sorted by invoking order.
 | beforeAnswer | applied before answer stage    |
 | invoke       | same as `command.invoke(...)`  |
 | answer       | same as `command.answer(...)`  |
-| beforeSend   | applied before sending message |
-| afterSend    | applied after sending message  |
-| afterAnswer  | applied after answer stage     |
-| afterInvoke  | applied after invoke stage     |
-| after        | applied after all stages       |
 
-Also there are predefined middlewares
+Lets look at follow example, and try to understand how and in which order they will be invoked.
+```js
+bot.use('before', function (ctx) {
+
+});
+
+bot.use('beforeInvoke', function (ctx) {
+
+});
+
+bot.use('afterInvoke', function (ctx) {
+
+});
+```
+
+
+### Predefined middlewares
+There are follow predefined middlewares
  - `botanio` - track each incoming message. See http://botan.io/
  - `typing` - show typing status before each message. See https://core.telegram.org/bots/api#sendchataction
 
@@ -172,6 +184,7 @@ Usage:
 bot.use('before', bb.middlewares.typing());
 bot.use('before', bb.middlewares.botanio('<BOTANIO_API_KEY>'));
 ```
+
 
 ## Sessions
 Sessions work is based on Redis 2.8+
@@ -201,7 +214,7 @@ bot > 12hello
 ```
 
 ## Localization and texts
-Localization can used in texts and keyboards
+Localization can used in texts and keyboards.
 Templates use [ejs](https://github.com/tj/ejs).
 ```js
 // set locales
@@ -742,6 +755,57 @@ This is answer for command. It presents only if command is a text field.
 
 #### context.message
 Presents message object. For more details look here: https://core.telegram.org/bots/api#message
+
+#### context.bot
+Shorthand for bot instance
+
+#### context.isRedirected
+Boolean. This flag means, that this command was achieved via `go` method. In other words, user did not type text `/command` in bot.
+Let's look at the follow example:
+```js
+bot.command('hello').invoke(function (ctx) {
+  return ctx.sendMessage('Type something.')
+})
+.answer(function (ctx) {
+  return ctx.go('world');
+});
+
+bot.command('world').invoke(function (ctx) {
+  return ctx.sendMessage('isRedirected: ' + ctx.isRedirected);
+});
+```
+User was typing something like this:
+```
+me  > /hello
+bot > Type something
+me  > lol
+bot > isRedirected: true
+```
+
+#### context.isSynthetic
+Boolean. This flag is true when we achieve the handler with `.withContext` method.
+```js
+bot.use('before', function (ctx) {
+  return ctx.sendMessage('isSynthetic before: ' + ctx.isSynthetic);
+});
+
+bot.command('withcontext', function (ctx) {
+  return ctx.sendMessage('hello').then(function () {
+    return bot.withContext(ctx.meta.sessionId, function (ctx) {
+      return ctx.sendMessage('isSynthetic in handler: ' + ctx.isSynthetic);
+    });
+  });
+})
+```
+
+Dialog with bot:
+```
+me  > /withcontext
+bot > isSynthetic before: false
+bot > hello
+bot > isSynthetic before: true
+bot > isSynthetic in handler: true
+```
 
 
 ### Context methods
