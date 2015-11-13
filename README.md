@@ -161,18 +161,57 @@ There are follow stages, sorted by invoking order.
 Lets look at follow example, and try to understand how and in which order they will be invoked.
 ```js
 bot.use('before', function (ctx) {
-
+  return ctx.sendMessage('bot before');
+})
+.use('beforeInvoke', function (ctx) {
+  return ctx.sendMessage('bot beforeInvoke');
+})
+.use('beforeAnswer', function (ctx) {
+  return ctx.sendMessage('bot beforeAnswer');
 });
 
-bot.use('beforeInvoke', function (ctx) {
-
+// catch all commands
+bot.command(/.*/).use('before', function (ctx) {
+  return ctx.sendMessage('rgx before');
+})
+.use('beforeInvoke', function (ctx) {
+  return ctx.sendMessage('rgx beforeInvoke');
+})
+.use('beforeAnswer', function (ctx) {
+  return ctx.sendMessage('rgx beforeAnswer');
 });
 
-bot.use('afterInvoke', function (ctx) {
+bot.command('hello')
+.use('before', function (ctx) {
+  return ctx.sendMessage('hello before');
+})
+.use('beforeInvoke', function (ctx) {
+  return ctx.sendMessage('hello beforeInvoke');
+})
+.use('beforeAnswer', function (ctx) {
+  return ctx.sendMessage('hello beforeAnswer');
+})
+.invoke(function (ctx) {
+  return ctx.sendMessage('hello invoke');
+})
+.answer(function (ctx) {
+  return ctx.go('world');
+});
 
+bot.command('world')
+.use('before', function (ctx) {
+  return ctx.sendMessage('world before');
+})
+.invoke(function (ctx) {
+  return ctx.sendMessage('world invoke');
 });
 ```
 
+Bot dialog
+```
+me  > /hello
+bot > 
+```
 
 ### Predefined middlewares
 There are follow predefined middlewares
