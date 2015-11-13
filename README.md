@@ -9,9 +9,66 @@ Main features:
   - templated keyboards and messages
   - navigation between commands
 
-Supports commands, sessions and middlewares. Like express.js, but for bots :)
-Works on Telegram api [Telegram Bot API](https://core.telegram.org/bots/api)
+## Table of contents
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+
+- [Install](#install)
+- [Simple usage](#simple-usage)
+- [Commands](#commands)
+- [Middlewares](#middlewares)
+- [Sessions](#sessions)
+- [Localization and texts](#localization-and-texts)
+- [Keyboards](#keyboards)
+  - [Go to state](#go-to-state)
+  - [Embedded handler](#embedded-handler)
+  - [isShown flag](#isshown-flag)
+  - [Localization in keyboards](#localization-in-keyboards)
+  - [Keyboard layouts](#keyboard-layouts)
+  - [Keyboard answers](#keyboard-answers)
+- [Api](#api)
+  - [Bot](#bot)
+    - [bot.api](#botapi)
+    - [bot.listenUpdates](#botlistenupdates)
+    - [bot.stopListenUpdates](#botstoplistenupdates)
+    - [bot.command](#botcommand)
+    - [bot.keyboard](#botkeyboard)
+    - [bot.texts](#bottexts)
+    - [Using webHook](#using-webhook)
+  - [Command](#command)
+  - [Context](#context)
+  - [Context properties](#context-properties)
+    - [context.session](#contextsession)
+    - [context.data](#contextdata)
+    - [context.meta](#contextmeta)
+    - [context.command](#contextcommand)
+    - [context.answer](#contextanswer)
+    - [context.message](#contextmessage)
+  - [Context methods](#context-methods)
+    - [context.keyboard(keyboardDefinition)](#contextkeyboardkeyboarddefinition)
+    - [context.hideKeyboard()](#contexthidekeyboard)
+    - [context.render(key)](#contextrenderkey)
+    - [context.go()](#contextgo)
+    - [context.goParent()](#contextgoparent)
+    - [context.goBack()](#contextgoback)
+    - [context.repeat()](#contextrepeat)
+    - [context.end()](#contextend)
+    - [context.setLocale(locale)](#contextsetlocalelocale)
+    - [context.getLocale()](#contextgetlocale)
+  - [context.sendMessage(text, [options])](#contextsendmessagetext-options)
+    - [context.forwardMessage(fromChatId, messageId)](#contextforwardmessagefromchatid-messageid)
+  - [context.sendPhoto(photo, [options])](#contextsendphotophoto-options)
+  - [context.sendAudio(audio, [options])](#contextsendaudioaudio-options)
+  - [context.sendDocument(A, [options])](#contextsenddocumenta-options)
+  - [context.sendSticker(A, [options])](#contextsendstickera-options)
+  - [context.sendVideo(A, [options])](#contextsendvideoa-options)
+  - [context.sendVoice(voice, [options])](#contextsendvoicevoice-options)
+  - [context.sendChatAction(action)](#contextsendchatactionaction)
+  - [context.getUserProfilePhotos([offset], [limit])](#contextgetuserprofilephotosoffset-limit)
+  - [context.sendLocation(latitude, longitude, [options])](#contextsendlocationlatitude-longitude-options)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Install
 ```sh
@@ -92,6 +149,7 @@ bot.command('my_command')
 });
 ```
 There are follow stages, sorted by invoking order.
+
 | Name         | Description                    |
 | ------------ | ------------------------------ |
 | before       | applied before all stages      |
@@ -194,7 +252,7 @@ Texts can set for follow entities:
   - command
   - context
 
-```
+```js
 bot.texts({
   book: {
     chapter: {
@@ -316,7 +374,7 @@ bot.use('before', function (ctx) {
 ]]);
 ```
 
-### 'isShown' flag
+### isShown flag
 bot.use('before', function (ctx) {
   ctx.isButtonShown = Math.round() > 0.5;
 }).keyboard([[
@@ -558,7 +616,126 @@ bot.command('command1')
 ```
 
 ### Context
+The context is the essence that runs through all middlewares. It is necessary to share data between middlewares. It is important to note that between middlewares passed same context, so you can record the data to be available in the next handler. Context passed as first argument in all middleware handlers.
+```js
+// this is handler is invoke
+bot.use('before', function (ctx) {
+  // ctx - it is the instance of Context
+  ctx.someProperty = 'hello';
+});
 
+bot.command('mycommand').invoke(function (ctx) {
+  // ctx - this is the same context!
+  ctx.someProperty === 'hello'; // true
+});
+```
+
+You can set any of your property to context variable. But! You must observe the following rules:
+  1. Property name can not begin with an underscore. `ctx._myVar` - bad!, `ctx.myVar` - good.
+  2. The names of the properties should not overlap with pre-defined properties. For example you can not reset `ctx.session` variable with something like this: `ctx.session = 'Hello'` - bad! `ctx.mySession = 'Hello'` - good.
+  3. Your property must not interfere with the methods of context. See below methods of context.
+
+
+### Context properties
+Context has the following pre-defined properties that are available for reading. Some of them are available for editing. Let's take a look at them:
+#### context.session
+In this variable you can record any data, which will be available anywhere in follow commands and middlewares.
+Important! Currently for group chats session shares between all users in chat.
+
+```js
+bot.command('hello').invoke(function (ctx) {
+  return ctx.sendMessage('Hello! What is your name?');
+}).answer(function (ctx) {
+  // set user answer to session.name
+  ctx.session.name = ctx.answer;
+  return ctx.sendMessage('OK! I remembered it.')
+});
+
+bot.command('bye').invoke(function (ctx) {
+  return ctx.sendMessage('Bye ' + ctx.session.name);
+});
+```
+
+The next dialog shows this:
+```
+me  > /hello
+bot > Hello! What is your name?
+me  > John
+bot > OK! I remembered it.
+me  > /bye
+bot > Bye John
+```
+
+#### context.data
+This variable works when rendering. For template rendering we use (ejs)[https://github.com/tj/ejs]. All the data you record will be available in the templates.
+```
+bot.texts({
+  hello: {
+    world: {
+      friend: 'Hello world, <%=name%>!'
+    }
+  }
+});
+
+bot.command('hello').invoke(function (ctx) {
+  ctx.data.name = 'John';
+  ctx.sendMessage('hello.world');
+});
+```
+
+The next dialog shows this:
+```
+me  > /hello
+bot > Hello world, John!
+```
+
+
+#### context.meta
+Meta contain follow fields:
+  - `user` - see https://core.telegram.org/bots/api#user
+  - `chat` - see https://core.telegram.org/bots/api#chat
+  - `sessionId` - key name for saving session in redis, currently it is `meta.chat.id`. So for group chats your session share between all users in chat.
+
+#### context.command
+Represents currently handled command. Has follow properties:
+ - `name` - the name of command
+ - `args` - arguments for command
+ - `type` - Can be `invoke` or `answer`. If handler is invoked with `.withContext` method, type is `synthetic`
+
+Suppose that we have the following code
+```js
+bot.command('hello')
+.invoke(function (ctx) {
+  var args = ctx.command.args.join('-');
+  var type = ctx.command.type;
+  var name = ctx.command.name;
+  return ctx.sendMessage('Type '+type+'; Name: '+name+'; Arguments: '+args);
+})
+.answer(function (ctx) {
+  var type = ctx.command.type;
+  var name = ctx.command.name;
+  var answer = ctx.answer;
+  ctx.sendMessage('Type '+type+'; Name: '+name+'; Answer: ' + answer)
+});
+```
+
+The result is the following dialogue:
+```
+me  > /hello world dear friend
+bot > Type: invoke; Name: hello; Arguments: world-dear-friend
+me  > bye
+bot > Type: answer; Name: hello; Answer: bye
+```
+
+#### context.answer
+This is answer for command. It presents only if command is a text field.
+
+#### context.message
+Presents message object. For more details look here: https://core.telegram.org/bots/api#message
+
+
+### Context methods
+Context has the following defined methods.
 
 #### context.keyboard(keyboardDefinition)
 Set keyboard
@@ -572,13 +749,6 @@ No send keyboard
 ctx.hideKeyboard()
 ```
 
-#### context.useKeyboard(keyboardName)
-Use named keyboard (layout).
-```js
-ctx.keyboard('my_keyboard', [[...]])
-ctx.useKeyboard('my_keyboard')
-```
-
 #### context.render(key)
 Return rendered text or key
 ```js
@@ -589,12 +759,13 @@ ctx.texts({
     }
   }
 })
-ctx.data.name = 'John'
-var str = ctx.render('localization.key.name')
-console.log(str)
+ctx.data.name = 'John';
+var str = ctx.render('localization.key.name');
+console.log(str); // outputs 'John'
 ```
 
-#### context.go() ⇒ <code>Promise</code>
+#### context.go()
+Return <code>Promise</code>
 Go to some command
 ```js
 var command1 = bot.command('command1')
@@ -604,7 +775,8 @@ var command2 = bot.command('command2').invoke(function (ctx) {
 })
 ```
 
-#### context.goParent() ⇒ <code>Promise</code>
+#### context.goParent()
+Return <code>Promise</code>
 Go to parent command
 ```js
 var command1 = bot.command('command1')
@@ -613,7 +785,8 @@ var command1Child = bot.command('command1_child').invoke(function (ctx) {
 });
 ```
 
-#### context.goBack() ⇒ <code>Promise</code>
+#### context.goBack()
+Return <code>Promise</code>
 Go to previously invoked command.
 Useful in keyboard 'Back' button.
 ```js
@@ -622,7 +795,8 @@ bot.keyboard([[
 ]])
 ```
 
-#### context.repeat() ⇒ <code>Promise</code>
+#### context.repeat()
+Return <code>Promise</code>
 Repeat current state, useful for handling wrong answers.
 ```js
 bot.command('command1')
@@ -653,7 +827,8 @@ bot.use('before', function (ctx) {
 #### context.getLocale()
 Return current locale
 
-### context.sendMessage(text, [options]) ⇒ <code>Promise</code>
+### context.sendMessage(text, [options])
+Return <code>Promise</code>
 Send text message.
 
 **See**: https://core.telegram.org/bots/api#sendmessage
@@ -663,7 +838,8 @@ Send text message.
 | text | <code>String</code> | Text  or localization key to be sent |
 | [options] | <code>Object</code> | Additional Telegram query options |
 
-#### context.forwardMessage(fromChatId, messageId) ⇒ <code>Promise</code>
+#### context.forwardMessage(fromChatId, messageId)
+Return <code>Promise</code>
 Forward messages of any kind.
 
 | Param | Type | Description |
@@ -671,7 +847,8 @@ Forward messages of any kind.
 | fromChatId | <code>Number</code> &#124; <code>String</code> | Unique identifier for the chat where the original message was sent |
 | messageId | <code>Number</code> &#124; <code>String</code> | Unique message identifier |
 
-### context.sendPhoto(photo, [options]) ⇒ <code>Promise</code>
+### context.sendPhoto(photo, [options])
+Return <code>Promise</code>
 Send photo
 
 **See**: https://core.telegram.org/bots/api#sendphoto
@@ -681,7 +858,8 @@ Send photo
 | photo | <code>String</code> &#124; <code>stream.Stream</code> | A file path or a Stream. Can also be a `file_id` previously uploaded |
 | [options] | <code>Object</code> | Additional Telegram query options |
 
-### context.sendAudio(audio, [options]) ⇒ <code>Promise</code>
+### context.sendAudio(audio, [options])
+Return <code>Promise</code>
 Send audio
 
 **See**: https://core.telegram.org/bots/api#sendaudio
@@ -691,7 +869,8 @@ Send audio
 | audio | <code>String</code> &#124; <code>stream.Stream</code> | A file path or a Stream. Can also be a `file_id` previously uploaded. |
 | [options] | <code>Object</code> | Additional Telegram query options |
 
-### context.sendDocument(A, [options]) ⇒ <code>Promise</code>
+### context.sendDocument(A, [options])
+Return <code>Promise</code>
 Send Document
 
 **See**: https://core.telegram.org/bots/api#sendDocument
@@ -701,7 +880,8 @@ Send Document
 | A | <code>String</code> &#124; <code>stream.Stream</code> | file path or a Stream. Can also be a `file_id` previously uploaded. |
 | [options] | <code>Object</code> | Additional Telegram query options |
 
-### context.sendSticker(A, [options]) ⇒ <code>Promise</code>
+### context.sendSticker(A, [options])
+Return <code>Promise</code>
 Send .webp stickers.
 
 **See**: https://core.telegram.org/bots/api#sendsticker
@@ -711,7 +891,8 @@ Send .webp stickers.
 | A | <code>String</code> &#124; <code>stream.Stream</code> | file path or a Stream. Can also be a `file_id` previously uploaded. |
 | [options] | <code>Object</code> | Additional Telegram query options |
 
-### context.sendVideo(A, [options]) ⇒ <code>Promise</code>
+### context.sendVideo(A, [options])
+Return <code>Promise</code>
 Use this method to send video files, Telegram clients support mp4 videos (other formats may be sent as Document).
 
 **See**: https://core.telegram.org/bots/api#sendvideo
@@ -721,7 +902,8 @@ Use this method to send video files, Telegram clients support mp4 videos (other 
 | A | <code>String</code> &#124; <code>stream.Stream</code> | file path or a Stream. Can also be a `file_id` previously uploaded. |
 | [options] | <code>Object</code> | Additional Telegram query options |
 
-### context.sendVoice(voice, [options]) ⇒ <code>Promise</code>
+### context.sendVoice(voice, [options])
+Return <code>Promise</code>
 Send voice
 
 **Kind**: instance method of <code>[TelegramBot](#TelegramBot)</code>
@@ -732,7 +914,8 @@ Send voice
 | voice | <code>String</code> &#124; <code>stream.Stream</code> | A file path or a Stream. Can also be a `file_id` previously uploaded. |
 | [options] | <code>Object</code> | Additional Telegram query options |
 
-### context.sendChatAction(action) ⇒ <code>Promise</code>
+### context.sendChatAction(action)
+Return <code>Promise</code>
 Send chat action.
 `typing` for text messages,
 `upload_photo` for photos, `record_video` or `upload_video` for videos,
@@ -745,7 +928,8 @@ Send chat action.
 | --- | --- | --- |
 | action | <code>String</code> | Type of action to broadcast. |
 
-### context.getUserProfilePhotos([offset], [limit]) ⇒ <code>Promise</code>
+### context.getUserProfilePhotos([offset], [limit])
+Return <code>Promise</code>
 Use this method to get a list of profile pictures for a user.
 Returns a [UserProfilePhotos](https://core.telegram.org/bots/api#userprofilephotos) object.
 
@@ -756,7 +940,8 @@ Returns a [UserProfilePhotos](https://core.telegram.org/bots/api#userprofilephot
 | [offset] | <code>Number</code> | Sequential number of the first photo to be returned. By default, all photos are returned. |
 | [limit] | <code>Number</code> | Limits the number of photos to be retrieved. Values between 1—100 are accepted. Defaults to 100. |
 
-### context.sendLocation(latitude, longitude, [options]) ⇒ <code>Promise</code>
+### context.sendLocation(latitude, longitude, [options])
+Return <code>Promise</code>
 Send location.
 Use this method to send point on the map.
 
