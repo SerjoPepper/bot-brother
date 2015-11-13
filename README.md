@@ -164,12 +164,11 @@ There are follow stages, sorted by invoking order.
 | after        | applied after all stages       |
 
 Also there are predefined middlewares
- - botan.io (track each incoming message)
- - typing (show typing status before each message)
+ - `botanio` - track each incoming message. See http://botan.io/
+ - `typing` - show typing status before each message. See https://core.telegram.org/bots/api#sendchataction
 
 Usage:
 ```js
-bb = require('bot-brother');
 bot.use('before', bb.middlewares.typing());
 bot.use('before', bb.middlewares.botanio('<BOTANIO_API_KEY>'));
 ```
@@ -179,16 +178,27 @@ Sessions work is based on Redis 2.8+
 ```js
 bot.command('memory')
 .invoke(function (ctx) {
-  ctx.sendMessage('Type some string')
+  return ctx.sendMessage('Type some string');
 })
 .answer(function (ctx) {
-  ctx.session.memory = ctx.session.memory || ''
-  ctx.session.memory += ctx.answer
-  ctx.data.memory = ctx.session.memory
-  ctx.sendMessage('Memory: <%=memory%>')
+  ctx.session.memory = ctx.session.memory || '';
+  ctx.session.memory += ctx.answer;
+  ctx.data.memory = ctx.session.memory;
+  return ctx.sendMessage('Memory: <%=memory%>');
 })
 ```
 
+Follow dialog demonstrates how it works:
+```
+me  > /memory
+bot > Type some string
+me  > 1
+bot > 1
+me  > 2
+bot > 12
+me  > hello
+bot > 12hello
+```
 
 ## Localization and texts
 Localization can used in texts and keyboards
