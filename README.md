@@ -105,6 +105,9 @@ bot.command('start')
 bot.listenUpdates();
 ```
 
+## Examples of usage
+We write simple notifications bot with `bot-brother`, so you can inspect code and its work here: https://github.com/SerjoPepper/delorean_bot
+
 ## Commands
 Commands can set via strings and regexps.
 ```js
