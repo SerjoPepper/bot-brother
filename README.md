@@ -18,14 +18,15 @@ Main features:
 - [Simple usage](#simple-usage)
 - [Commands](#commands)
 - [Middlewares](#middlewares)
+  - [Predefined middlewares](#predefined-middlewares)
 - [Sessions](#sessions)
 - [Localization and texts](#localization-and-texts)
 - [Keyboards](#keyboards)
-  - [Go to state](#go-to-state)
+  - [Go to command](#go-to-command)
   - [Embedded handler](#embedded-handler)
   - [isShown flag](#isshown-flag)
   - [Localization in keyboards](#localization-in-keyboards)
-  - [Keyboard layouts](#keyboard-layouts)
+  - [Keyboard templates](#keyboard-templates)
   - [Keyboard answers](#keyboard-answers)
 - [Api](#api)
   - [Bot](#bot)
@@ -45,6 +46,9 @@ Main features:
     - [context.command](#contextcommand)
     - [context.answer](#contextanswer)
     - [context.message](#contextmessage)
+    - [context.bot](#contextbot)
+    - [context.isRedirected](#contextisredirected)
+    - [context.isSynthetic](#contextissynthetic)
   - [Context methods](#context-methods)
     - [context.keyboard(keyboardDefinition)](#contextkeyboardkeyboarddefinition)
     - [context.hideKeyboard()](#contexthidekeyboard)
@@ -210,7 +214,25 @@ bot.command('world')
 Bot dialog
 ```
 me  > /hello
-bot > 
+bot > bot before
+bot > bot beforeInvoke
+bot > rgx before
+bot > rgx beforeInvoke
+bot > hello before
+bot > hello beforeInvoke
+bot > hello invoke
+me  > I type something
+bot > bot before
+bot > bot beforeAnswer
+bot > rgx before
+bot > rgx beforeAnswer
+bot > hello beforeAnswer
+bot > bot before // we jumped to "world" command with "ctx.go('world')""
+bot > bot beforeInvoke
+bot > rgx before
+bot > rgx beforeInvoke
+bot > world before
+bot > world invoke 
 ```
 
 ### Predefined middlewares
@@ -282,7 +304,8 @@ bot.texts({
 
 bot.use('before', function (ctx) {
   ctx.data.user = ctx.meta.user // set data.user to Telegram user
-  ctx.setLocale('en')
+  ctx.session.locale = ctx.session.locale || 'en';
+  ctx.setLocale(ctx.session.locale);
 });
 
 bot.command('chapter1_page1').invoke(function (ctx) {
@@ -298,6 +321,7 @@ bot.command('chapter2_page4').invoke(function (ctx) {
   ctx.sendMessage('book.chapter2.page4')
 })
 ```
+When bot-brother send message, it tries interpret message as a key from your localization. If key not found, it interprets it as a template with variables and renders it via ejs.
 
 All local variables can be set via `ctx.data`
 There are follow predefined locals:
@@ -332,7 +356,7 @@ bot.texts({
   })
 })
 
-bot.command('page', function (ctx) {
+bot.command('page').invoke(function (ctx) {
   return ctx.sendMessage('book.chapter.page') // output 'Some another text'
 })
 .texts({
@@ -374,8 +398,8 @@ bot.command('page3').invoke(function (ctx) {
 })
 ```
 
-### Go to state
-You can go to any state via keyboard
+### Go to command
+You can go to any state via keyboard. First argument for `go` method is a command name.
 ```
 bot.keyboard([[
   {'command1': {go: 'command1'}}
@@ -410,7 +434,10 @@ bot.keyboard([[
     }
   }
 ]]);
+```
 
+Important! Avoid using outscope variables in embedded handler. Embedded handler functions stored in redis, so when a function will be invoked your outscope variables will not attend.
+```
 // This does not work! Do not use outscope variables
 var outScopeText = 'some text';
 bot.keyboard([[
@@ -423,6 +450,7 @@ bot.keyboard([[
   }
 ]]);
 
+// This work!
 bot.use('before', function (ctx) {
   ctx.data.outScopeText = outScopeText;
 }).keyboard([[
@@ -437,6 +465,9 @@ bot.use('before', function (ctx) {
 ```
 
 ### isShown flag
+`isShown` flag can be used to hide keyboard buttons in certain moment
+
+```
 bot.use('before', function (ctx) {
   ctx.isButtonShown = Math.round() > 0.5;
 }).keyboard([[
@@ -449,6 +480,7 @@ bot.use('before', function (ctx) {
     }
   }
 ]]);
+```
 
 ### Localization in keyboards
 ```js
@@ -463,8 +495,8 @@ bot.texts({
 ])
 ```
 
-### Keyboard layouts
-You can use keyboard layouts
+### Keyboard templates
+You can use keyboard templates
 ```js
 bot.keyboard('footer', [{':arrow_backward:': {go: 'start'}}])
 
@@ -546,6 +578,9 @@ bot.command('command1', {compliantKeyboard: true})
   // see https://core.telegram.org/bots/api#message
   console.log(ctx.message)
 })
+.keyboard([[
+  {'Text answer 1': 'text-answer'}
+]])
 ```
 
 ## Api
@@ -584,7 +619,7 @@ bot.api.sendMessage(chatId, 'message');
 ```
 
 #### bot.listenUpdates
-Start listening updates via polling or webhook
+Start listening updates via polling or webhook. By default `polling` is enabled.
 ```js
 bot.listenUpdates();
 ```
@@ -631,6 +666,7 @@ bot.texts({
 
 
 #### Using webHook
+Webhook in telegram documentation: https://core.telegram.org/bots/api#setwebhook
 If your node.js is running behind the proxy (nginx for example) use follow code.
 We omit `webHook.key` parameter and run node.js on 3000 unsecure port.
 ```js
@@ -741,7 +777,7 @@ bot.texts({
 
 bot.command('hello').invoke(function (ctx) {
   ctx.data.name = 'John';
-  ctx.sendMessage('hello.world');
+  ctx.sendMessage('hello.world.friend');
 });
 ```
 
@@ -749,6 +785,30 @@ The next dialog shows this:
 ```
 me  > /hello
 bot > Hello world, John!
+```
+
+There is pre-defined method `render` in context.data. It can be used for rendering embedded keys:
+```
+bot.texts({
+  hello: {
+    world: {
+      friend: 'Hello world, <%=name%>!',
+      bye: 'Good bye, <%=name%>',
+      message: '<%=render("hello.world.friend") <%=render("hello.world.bye")%>'
+    }
+  }
+});
+
+bot.command('hello').invoke(function (ctx) {
+  ctx.data.name = 'John';
+  ctx.sendMessage('hello.world.message');
+});
+```
+
+Bot dialog
+```
+me  > /hello
+bot > Hello world, John! Good bye, John
 ```
 
 
@@ -890,7 +950,7 @@ var command2 = bot.command('command2').invoke(function (ctx) {
 
 #### context.goParent()
 Return <code>Promise</code>
-Go to parent command
+Go to parent command. The command is considered a descendant if its name begins with the parent command name, for example `setting` is parent command, `settings_locale` is a descendant command.
 ```js
 var command1 = bot.command('command1')
 var command1Child = bot.command('command1_child').invoke(function (ctx) {
