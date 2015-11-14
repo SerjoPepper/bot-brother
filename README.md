@@ -16,6 +16,7 @@ Main features:
 
 - [Install](#install)
 - [Simple usage](#simple-usage)
+- [Examples of usage](#examples-of-usage)
 - [Commands](#commands)
 - [Middlewares](#middlewares)
   - [Predefined middlewares](#predefined-middlewares)
