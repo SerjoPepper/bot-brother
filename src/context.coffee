@@ -324,14 +324,21 @@ class Context
 
 
   _provideKeyboardMarkup: ->
-    if @_temp.usePrevKeyboard
-      null
+    noPrivate = @meta.chat.type != 'private'
+    if @_handler.command.compliantKeyboard && noPrivate
+      force_reply: true
     else
-      markup = @_renderKeyboard()
-      if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
-        keyboard: markup, resize_keyboard: true
+      if @_temp.usePrevKeyboard
+        null
       else
-        hide_keyboard: true
+        markup = @_renderKeyboard()
+        if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
+          keyboard: markup, resize_keyboard: true
+        else
+          if noPrivate
+            force_reply: true
+          else
+            hide_keyboard: true
 
 
 

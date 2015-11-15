@@ -88,19 +88,30 @@ var bot = bb({
   redis: {port: 6379, host: '127.0.0.1'}
 });
 
-// create command 'start'
+// create command '/start'
 bot.command('start')
 .invoke(function (ctx) {
   // set data, data is used in templates
-  ctx.data.name = ctx.meta.user;
+  ctx.data.user = ctx.meta.user;
   // return promise
-  return ctx.sendMessage('Hello <%=name%>. How are you?');
+  return ctx.sendMessage('Hello <%=user.first_name%>. How are you?');
 })
 .answer(function (ctx) {
   ctx.data.answer = ctx.answer;
   // return promise
   return ctx.sendMessage('OK. I understood. You are <%=answer%>');
+});
+
+// create command '/upload_photo'
+bot.command('upload_photo')
+.invoke(function (ctx) {
+  return ctx.sendMessage('Drop me a photo, please');
 })
+.answer(function (ctx) {
+  // ctx.message is an object that represents Message.
+  // See https://core.telegram.org/bots/api#message 
+  return ctx.sendPhoto(ctx.message.photo[0].file_id, {caption: 'I got your photo!'});
+});
 
 // start listen updates via polling
 bot.listenUpdates();
@@ -156,7 +167,7 @@ bot.command('my_command')
   return ctx.sendMessage('Your vehicle is <%=user.vehicle%>. Your age is <%=user.age%>.');
 });
 ```
-There are follow stages, sorted by invoking order.
+There are following stages, sorted by invoking order.
 
 | Name         | Description                    |
 | ------------ | ------------------------------ |
@@ -166,7 +177,7 @@ There are follow stages, sorted by invoking order.
 | invoke       | same as `command.invoke(...)`  |
 | answer       | same as `command.answer(...)`  |
 
-Lets look at follow example, and try to understand how and in which order they will be invoked.
+Lets look at following example, and try to understand how and in which order they will be invoked.
 ```js
 bot.use('before', function (ctx) {
   return ctx.sendMessage('bot before');
@@ -240,7 +251,7 @@ bot > world invoke
 ```
 
 ### Predefined middlewares
-There are follow predefined middlewares
+There are following predefined middlewares
  - `botanio` - track each incoming message. See http://botan.io/
  - `typing` - show typing status before each message. See https://core.telegram.org/bots/api#sendchataction
 
@@ -266,7 +277,7 @@ bot.command('memory')
 })
 ```
 
-Follow dialog demonstrates how it works:
+following dialog demonstrates how it works:
 ```
 me  > /memory
 bot > Type some string
@@ -326,18 +337,9 @@ bot.command('chapter2_page4').invoke(function (ctx) {
 })
 ```
 When bot-brother send message, it tries interpret message as a key from your localization. If key not found, it interprets it as a template with variables and renders it via ejs.
+All local variables can be set via `ctx.data`.
 
-All local variables can be set via `ctx.data`
-There are follow predefined locals:
- - `render`, can render other key. for example: `<%=render('other.key')%>`
-```js
-bot.use('before', function (ctx) {
-  ctx.data.variable1 = 'Variable1 value'
-  return ctx.sendMessage('before middleware; <%=variable1%>');
-});
-```
-
-Texts can set for follow entities:
+Texts can set for following entities:
   - bot
   - command
   - context
@@ -346,31 +348,52 @@ Texts can set for follow entities:
 bot.texts({
   book: {
     chapter: {
-      page: 'Page text'
+      page: 'Page 1 text'
     }
   }
-})
-.use('before', function (ctx) {
-  ctx.texts({
-    book: {
-      chapter: {
-        page: 'Some another text'
-      }
-    }
-  })
-})
+});
 
-bot.command('page').invoke(function (ctx) {
-  return ctx.sendMessage('book.chapter.page') // output 'Some another text'
+bot.command('page1').invoke(function (ctx) {
+  return ctx.sendMessage('book.chapter.page');
+});
+
+bot.command('page2').invoke(function (ctx) {
+  return ctx.sendMessage('book.chapter.page');
 })
 .texts({
   book: {
     chapter: {
-      page: 'Another text'
+      page: 'Page 2 text'
     }
   }
 });
+
+bot.command('page3')
+.use('before', function (ctx) {
+  ctx.texts({
+    book: {
+      chapter: {
+        page: 'Page 3 text'
+      }
+    }
+  });
+})
+.invoke(function (ctx) {
+  return ctx.sendMessage('book.chapter.page');
+})
 ```
+
+Bot dialog:
+
+```
+me  > /page1
+bot > Page 1 text
+me  > /page2
+bot > Page 2 text
+me  > /page3
+bot > Page 3 text
+```
+
 
 ## Keyboards
 You can set keyboard for context, command or bot
@@ -529,7 +552,7 @@ bot.command('page2', function () {
 ```
 
 ### Keyboard answers
-When you want to handle text answer from your keyboard, use follow code:
+When you want to handle text answer from your keyboard, use following code:
 ```js
 bot.command('command1')
 .invoke(function (ctx) {
@@ -547,7 +570,7 @@ bot.command('command1')
 });
 ```
 
-Sometimes you want that user manually enter the answer. Use follow code to do this
+Sometimes you want that user manually enter the answer. Use following code to do this
 ```js
 // Use 'compliantKeyboard' flag
 bot.command('command1', {compliantKeyboard: true})
@@ -569,22 +592,6 @@ bot.command('command1', {compliantKeyboard: true})
     return ctx.sendMessage('This is not answer from keyboard. Your answer: ' + ctx.answer)
   }
 });
-```
-
-If you need to handle photos or other materials from message, use this code:
-```js
-bot.command('command1', {compliantKeyboard: true})
-.invoke(function (ctx) {
-  return ctx.sendMessage('Send me something');
-})
-.answer(function (ctx) {
-  // handle message
-  // see https://core.telegram.org/bots/api#message
-  console.log(ctx.message)
-})
-.keyboard([[
-  {'Text answer 1': 'text-answer'}
-]])
 ```
 
 ## Api
@@ -614,7 +621,7 @@ var bot = bb({
 })
 ```
 
-Has follow methods:
+Has following methods:
 
 #### bot.api
 Api is instance of [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api)
@@ -671,7 +678,7 @@ bot.texts({
 
 #### Using webHook
 Webhook in telegram documentation: https://core.telegram.org/bots/api#setwebhook
-If your node.js is running behind the proxy (nginx for example) use follow code.
+If your node.js is running behind the proxy (nginx for example) use following code.
 We omit `webHook.key` parameter and run node.js on 3000 unsecure port.
 ```js
 var bb = require('bot-brother');
@@ -690,7 +697,7 @@ var bot = bb({
 })
 ```
 
-Otherwise if your node.js server is available outside, use follow code:
+Otherwise if your node.js server is available outside, use following code:
 ```js
 var bb = require('bot-brother');
 var bot = bb({
@@ -741,7 +748,7 @@ You can set any of your property to context variable. But! You must observe the 
 ### Context properties
 Context has the following pre-defined properties that are available for reading. Some of them are available for editing. Let's take a look at them:
 #### context.session
-In this variable you can record any data, which will be available anywhere in follow commands and middlewares.
+In this variable you can record any data, which will be available anywhere in following commands and middlewares.
 Important! Currently for group chats session shares between all users in chat.
 
 ```js
@@ -798,7 +805,7 @@ bot.texts({
     world: {
       friend: 'Hello world, <%=name%>!',
       bye: 'Good bye, <%=name%>',
-      message: '<%=render("hello.world.friend") <%=render("hello.world.bye")%>'
+      message: '<%=render("hello.world.friend")%> <%=render("hello.world.bye")%>'
     }
   }
 });
@@ -817,13 +824,13 @@ bot > Hello world, John! Good bye, John
 
 
 #### context.meta
-Meta contain follow fields:
+Meta contain following fields:
   - `user` - see https://core.telegram.org/bots/api#user
   - `chat` - see https://core.telegram.org/bots/api#chat
   - `sessionId` - key name for saving session in redis, currently it is `meta.chat.id`. So for group chats your session share between all users in chat.
 
 #### context.command
-Represents currently handled command. Has follow properties:
+Represents currently handled command. Has following properties:
  - `name` - the name of command
  - `args` - arguments for command
  - `type` - Can be `invoke` or `answer`. If handler is invoked with `.withContext` method, type is `synthetic`
@@ -864,7 +871,7 @@ Shorthand for bot instance
 
 #### context.isRedirected
 Boolean. This flag means, that this command was achieved via `go` method. In other words, user did not type text `/command` in bot.
-Let's look at the follow example:
+Let's look at the following example:
 ```js
 bot.command('hello').invoke(function (ctx) {
   return ctx.sendMessage('Type something.')
