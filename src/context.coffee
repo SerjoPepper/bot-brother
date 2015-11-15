@@ -325,7 +325,7 @@ class Context
 
   _provideKeyboardMarkup: ->
     noPrivate = @meta.chat.type != 'private'
-    if @_handler.command.compliantKeyboard && noPrivate
+    if @_handler.command?.compliantKeyboard && noPrivate
       force_reply: true
     else
       if @_temp.usePrevKeyboard
