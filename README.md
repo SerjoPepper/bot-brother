@@ -23,7 +23,7 @@ Main features:
 - [Sessions](#sessions)
 - [Localization and texts](#localization-and-texts)
 - [Keyboards](#keyboards)
-  - [Go to command](#go-to-command)
+  - [Going to command](#going-to-command)
   - [Embedded handler](#embedded-handler)
   - [isShown flag](#isshown-flag)
   - [Localization in keyboards](#localization-in-keyboards)
@@ -119,6 +119,7 @@ bot.listenUpdates();
 
 ## Examples of usage
 We've written simple notification bot with `bot-brother`, so you can inspect code here: https://github.com/SerjoPepper/delorean_bot
+<br>
 You can try bot in action here:
 https://telegram.me/delorean_bot
 
