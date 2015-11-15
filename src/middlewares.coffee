@@ -10,5 +10,5 @@ module.exports.botanio = (key) ->
 
 module.exports.typing = ->
   (context) ->
-    context.bot.api.sendChatAction(context.meta.chatId, 'typing')
+    context.bot.api.sendChatAction(context.meta.chat.id, 'typing')
     return
