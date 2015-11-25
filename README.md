@@ -1,6 +1,6 @@
 # Bot-brother
-Node.js library to help you easy create telegram bots. Work on top of [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api)
-Required Redis 2.8+
+Node.js library to help you easy create telegram bots. Works on top of [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api)
+Redis 2.8+ is required.
 
 Main features:
   - sessions
@@ -23,7 +23,7 @@ Main features:
 - [Sessions](#sessions)
 - [Localization and texts](#localization-and-texts)
 - [Keyboards](#keyboards)
-  - [Go to command](#go-to-command)
+  - [Going to command](#going-to-command)
   - [Embedded handler](#embedded-handler)
   - [isShown flag](#isshown-flag)
   - [Localization in keyboards](#localization-in-keyboards)
@@ -88,21 +88,21 @@ var bot = bb({
   redis: {port: 6379, host: '127.0.0.1'}
 });
 
-// create command '/start'
+// Let's create command '/start'.
 bot.command('start')
 .invoke(function (ctx) {
-  // set data, data is used in templates
+  // Setting data, data is used in text message templates.
   ctx.data.user = ctx.meta.user;
-  // return promise
+  // Invoke callback must return promise.
   return ctx.sendMessage('Hello <%=user.first_name%>. How are you?');
 })
 .answer(function (ctx) {
   ctx.data.answer = ctx.answer;
-  // return promise
-  return ctx.sendMessage('OK. I understood. You are <%=answer%>');
+  // Returns promise.
+  return ctx.sendMessage('OK. I understood. You feel <%=answer%>');
 });
 
-// create command '/upload_photo'
+// Creating command '/upload_photo'.
 bot.command('upload_photo')
 .invoke(function (ctx) {
   return ctx.sendMessage('Drop me a photo, please');
@@ -113,15 +113,18 @@ bot.command('upload_photo')
   return ctx.sendPhoto(ctx.message.photo[0].file_id, {caption: 'I got your photo!'});
 });
 
-// start listen updates via polling
+// Start listening updates via polling.
 bot.listenUpdates();
 ```
 
 ## Examples of usage
-We write simple notifications bot with `bot-brother`, so you can inspect code and its work here: https://github.com/SerjoPepper/delorean_bot
+We've written simple notification bot with `bot-brother`, so you can inspect code here: https://github.com/SerjoPepper/delorean_bot
+<br>
+You can try bot in action here:
+https://telegram.me/delorean_bot
 
 ## Commands
-Commands can set via strings and regexps.
+Commands can be set with strings or regexps.
 ```js
 bot.command(/^page[0-9]+/).invoke(function (ctx) {
   return ctx.sendMessage('Invoked on any page')
@@ -138,7 +141,7 @@ bot.command('page2').invoke(function (ctx) {
 
 
 ## Middlewares
-Middlewares are needed for multi stage command handling
+Middlewares are useful for multistage command handling.
 ```js
 var bb = require('bot-brother');
 var bot = bb({
@@ -150,9 +153,9 @@ bot.listenUpdates();
 bot.use('before', function (ctx) {
   return findUserFromDbPromise(ctx.meta.user.id).then(function (user) {
     user.vehicle = user.vehicle || 'Car'
-    // your can set any field name, except follow:
-    // 1. fields, start with '_', like ctx._variable
-    // 2. bot, session, message, isRedirected, isSynthetic, command, isEnded, meta
+    // You can set any fieldname except following:
+    // 1. You can't create fields starting with '_', like ctx._variable;
+    // 2. 'bot', 'session', 'message', 'isRedirected', 'isSynthetic', 'command', 'isEnded', 'meta' are reserved names.
     ctx.user = user;
   });
 });
@@ -163,11 +166,10 @@ bot.command('my_command')
 })
 .invoke(function (ctx) {
   ctx.data.user = ctx.user;
-  // return promise
   return ctx.sendMessage('Your vehicle is <%=user.vehicle%>. Your age is <%=user.age%>.');
 });
 ```
-There are following stages, sorted by invoking order.
+There are following stages, sorted in order of appearance.
 
 | Name         | Description                    |
 | ------------ | ------------------------------ |
@@ -177,7 +179,7 @@ There are following stages, sorted by invoking order.
 | invoke       | same as `command.invoke(...)`  |
 | answer       | same as `command.answer(...)`  |
 
-Lets look at following example, and try to understand how and in which order they will be invoked.
+Let's look at following example, and try to understand how and in what order they will be invoked.
 ```js
 bot.use('before', function (ctx) {
   return ctx.sendMessage('bot before');
@@ -189,7 +191,7 @@ bot.use('before', function (ctx) {
   return ctx.sendMessage('bot beforeAnswer');
 });
 
-// catch all commands
+// This callback cathes all commands.
 bot.command(/.*/).use('before', function (ctx) {
   return ctx.sendMessage('rgx before');
 })
@@ -242,7 +244,7 @@ bot > bot beforeAnswer
 bot > rgx before
 bot > rgx beforeAnswer
 bot > hello beforeAnswer
-bot > bot before // we jumped to "world" command with "ctx.go('world')""
+bot > bot before // We've jumped to "world" command with "ctx.go('world')""
 bot > bot beforeInvoke
 bot > rgx before
 bot > rgx beforeInvoke
@@ -251,9 +253,9 @@ bot > world invoke
 ```
 
 ### Predefined middlewares
-There are following predefined middlewares
- - `botanio` - track each incoming message. See http://botan.io/
- - `typing` - show typing status before each message. See https://core.telegram.org/bots/api#sendchataction
+There are two predefined middlewares:
+ - `botanio` - tracks each incoming message. See http://botan.io/
+ - `typing` - shows typing status before each message. See https://core.telegram.org/bots/api#sendchataction
 
 Usage:
 ```js
@@ -263,7 +265,7 @@ bot.use('before', bb.middlewares.botanio('<BOTANIO_API_KEY>'));
 
 
 ## Sessions
-Sessions work is based on Redis 2.8+
+Sessions are implemented with Redis 2.8+
 ```js
 bot.command('memory')
 .invoke(function (ctx) {
@@ -277,7 +279,7 @@ bot.command('memory')
 })
 ```
 
-following dialog demonstrates how it works:
+This dialog demonstrates how it works:
 ```
 me  > /memory
 bot > Type some string
@@ -290,10 +292,10 @@ bot > 12hello
 ```
 
 ## Localization and texts
-Localization can used in texts and keyboards.
-Templates use [ejs](https://github.com/tj/ejs).
+Localization can be used in texts and keyboards.
+For templates we use [ejs](https://github.com/tj/ejs).
 ```js
-// set locales
+// Setting keys and values for locale 'en'.
 bot.texts({
   book: {
     chapter1: {
@@ -305,7 +307,7 @@ bot.texts({
   }
 }, {locale: 'en'})
 
-// set default locales (used if key in certain locale did not found)
+// Setting default localization values (used if key in certain locale did not found).
 bot.texts({
   book: {
     chapter1: {
@@ -318,7 +320,8 @@ bot.texts({
 })
 
 bot.use('before', function (ctx) {
-  ctx.data.user = ctx.meta.user // set data.user to Telegram user
+  // Let's set data.user to Telegram user to use value in message templates.
+  ctx.data.user = ctx.meta.user
   ctx.session.locale = ctx.session.locale || 'en';
   ctx.setLocale(ctx.session.locale);
 });
@@ -336,10 +339,10 @@ bot.command('chapter2_page4').invoke(function (ctx) {
   ctx.sendMessage('book.chapter2.page4')
 })
 ```
-When bot-brother send message, it tries interpret message as a key from your localization. If key not found, it interprets it as a template with variables and renders it via ejs.
+When bot-brother sends a message, it tries to interpret this message as a key from your localization set. If key's not found, it interprets the message as a template with variables and renders it via ejs.
 All local variables can be set via `ctx.data`.
 
-Texts can set for following entities:
+Texts can be set for following entities:
   - bot
   - command
   - context
@@ -396,10 +399,10 @@ bot > Page 3 text
 
 
 ## Keyboards
-You can set keyboard for context, command or bot
+You can set keyboard for context, command or bot.
 ```js
-// this keyboard is applied for any command
-// also you can use emoji in keyboard
+// This keyboard is applied for any command.
+// Also you can use emoji in keyboard.
 bot.keyboard([
   [{':one: go page 1': {go: 'page1'}}],
   [{':two: go page 2': {go: 'page2'}}],
@@ -425,21 +428,21 @@ bot.command('page3').invoke(function (ctx) {
 })
 ```
 
-### Go to command
-You can go to any state via keyboard. First argument for `go` method is a command name.
+### Going to command
+You can go to any command via keyboard. First argument for `go` method is a command name.
 ```
 bot.keyboard([[
   {'command1': {go: 'command1'}}
 ]])
 
-// or with this syntax
+// Also you can use this syntax
 bot.keyboard([[
   {'command1': function (ctx) {return ctx.go('command1');}}
 ]])
 ```
 
 ### Embedded handler
-You also can use embedded handler in keyboard. Important! you should not use outscope commands
+You can also use embedded handler in keyboard.
 ```
 bot.keyboard([[
   {
@@ -451,7 +454,7 @@ bot.keyboard([[
   }
 ]]);
 
-// or with this syntax
+// Or with this syntax:
 bot.keyboard([[
   {
     'text1': function (ctx) {
@@ -463,9 +466,9 @@ bot.keyboard([[
 ]]);
 ```
 
-Important! Avoid using outscope variables in embedded handler. Embedded handler functions stored in redis, so when a function will be invoked your outscope variables will not attend.
+Important! Avoid using outscope variables in embedded handler. Embedded handler functions are stored in redis, so when a function will be invoked your outscope variables won't be available.
 ```
-// This does not work! Do not use outscope variables
+// This does not work! Do not use outscope variables.
 var outScopeText = 'some text';
 bot.keyboard([[
   {
@@ -477,7 +480,7 @@ bot.keyboard([[
   }
 ]]);
 
-// This work!
+// This works!
 bot.use('before', function (ctx) {
   ctx.data.outScopeText = outScopeText;
 }).keyboard([[
@@ -492,7 +495,7 @@ bot.use('before', function (ctx) {
 ```
 
 ### isShown flag
-`isShown` flag can be used to hide keyboard buttons in certain moment
+`isShown` flag can be used to hide keyboard buttons in certain moment.
 
 ```
 bot.use('before', function (ctx) {
@@ -552,7 +555,7 @@ bot.command('page2', function () {
 ```
 
 ### Keyboard answers
-When you want to handle text answer from your keyboard, use following code:
+If you want to handle a text answer from your keyboard, use following code:
 ```js
 bot.command('command1')
 .invoke(function (ctx) {
@@ -566,13 +569,13 @@ bot.command('command1')
 ])
 .answer(function (ctx) {
   ctx.data.answer = ctx.answer;
-  return ctx.sendMessage('Your answer <%=answer%>');
+  return ctx.sendMessage('Your answer is <%=answer%>');
 });
 ```
 
-Sometimes you want that user manually enter the answer. Use following code to do this
+Sometimes you want user to manually enter an answer. Use following code to do this:
 ```js
-// Use 'compliantKeyboard' flag
+// Use 'compliantKeyboard' flag.
 bot.command('command1', {compliantKeyboard: true})
 .use('before', function (ctx) {
   ctx.keyboard([
@@ -587,9 +590,9 @@ bot.command('command1', {compliantKeyboard: true})
 })
 .answer(function (ctx) {
   if (typeof ctx.answer === 'number') {
-    return ctx.sendMessage('This is answer from keyboard')
+    return ctx.sendMessage('This is an answer from keyboard')
   } else {
-    return ctx.sendMessage('This is not answer from keyboard. Your answer: ' + ctx.answer)
+    return ctx.sendMessage('This is not an answer from keyboard. Your answer is: ' + ctx.answer)
   }
 });
 ```
@@ -621,28 +624,28 @@ var bot = bb({
 })
 ```
 
-Has following methods:
+Has following methods and fields:
 
 #### bot.api
-Api is instance of [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api)
+bot.api is an instance of [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api)
 ```js
 bot.api.sendMessage(chatId, 'message');
 ```
 
 #### bot.listenUpdates
-Start listening updates via polling or webhook. By default `polling` is enabled.
+Starts listening updates via polling or webhook. By default `polling` is enabled.
 ```js
 bot.listenUpdates();
 ```
 
 #### bot.stopListenUpdates
-Stop listen updates.
+Stops listening updates.
 ```js
 bot.stopListenUpdates();
 ```
 
 #### bot.command
-Create command
+Creates a command.
 ```js
 bot.command('start').invoke(function (ctx) {
   ctx.sendMessage('Hello')
@@ -659,7 +662,7 @@ bot.keyboard([
 
 
 #### bot.texts
-Defined texts can use in  keyboards, messages, photo captions
+Defined texts can be used in keyboards, messages, photo captions
 ```js
 bot.texts({
   key1: {
@@ -667,7 +670,7 @@ bot.texts({
   }
 })
 
-// with localization
+// With localization.
 bot.texts({
   key1: {
     embeddedKey2: 'Hello2'
@@ -678,7 +681,7 @@ bot.texts({
 
 #### Using webHook
 Webhook in telegram documentation: https://core.telegram.org/bots/api#setwebhook
-If your node.js is running behind the proxy (nginx for example) use following code.
+If your node.js process is running behind the proxy (nginx for example) use following code.
 We omit `webHook.key` parameter and run node.js on 3000 unsecure port.
 ```js
 var bb = require('bot-brother');
@@ -689,7 +692,8 @@ var bot = bb({
     host: '127.0.0.1'
   },
   webHook: {
-    url: 'https://mybot.com/updates', // your nginx from here should proxy to 127.0.0.1:3000
+    // Your nginx should proxy this to 127.0.0.1:3000
+    url: 'https://mybot.com/updates',
     cert: '<PEM_PUBLIC_KEY>',
     port: 3000,
     https: false
@@ -725,39 +729,38 @@ bot.command('command1')
 ```
 
 ### Context
-The context is the essence that runs through all middlewares. It is necessary to share data between middlewares. It is important to note that between middlewares passed same context, so you can record the data to be available in the next handler. Context passed as first argument in all middleware handlers.
+The context is the essence that runs through all middlewares. You can put some data in the context and use this data in the next handler. Context is passed as the first argument in all middleware handlers.
 ```js
 // this is handler is invoke
 bot.use('before', function (ctx) {
-  // ctx - it is the instance of Context
+  // 'ctx' is an instance of Context
   ctx.someProperty = 'hello';
 });
 
 bot.command('mycommand').invoke(function (ctx) {
-  // ctx - this is the same context!
+  // You can use data from previous stage!
   ctx.someProperty === 'hello'; // true
 });
 ```
 
-You can set any of your property to context variable. But! You must observe the following rules:
-  1. Property name can not begin with an underscore. `ctx._myVar` - bad!, `ctx.myVar` - good.
-  2. The names of the properties should not overlap with pre-defined properties. For example you can not reset `ctx.session` variable with something like this: `ctx.session = 'Hello'` - bad! `ctx.mySession = 'Hello'` - good.
-  3. Your property must not interfere with the methods of context. See below methods of context.
+You can put any property to context variable. But! You must observe the following rules:
+  1. Property name can not start with an underscore. `ctx._myVar` - bad!, `ctx.myVar` - good.
+  2. Names of properties should not overlap predefined properties or methods. `ctx.session = 'Hello'` - bad! `ctx.mySession = 'Hello'` - good.
 
 
 ### Context properties
-Context has the following pre-defined properties that are available for reading. Some of them are available for editing. Let's take a look at them:
+Context has following predefined properties available for reading. Some of them are available for editing. Let's take a look at them:
 #### context.session
-In this variable you can record any data, which will be available anywhere in following commands and middlewares.
-Important! Currently for group chats session shares between all users in chat.
+You can put any data in context.session. This data will be available in commands and middlewares invoked for the same user.
+Important! Currently for group chats session data is shared between all users in chat.
 
 ```js
 bot.command('hello').invoke(function (ctx) {
   return ctx.sendMessage('Hello! What is your name?');
 }).answer(function (ctx) {
-  // set user answer to session.name
+  // Sets user answer to session.name.
   ctx.session.name = ctx.answer;
-  return ctx.sendMessage('OK! I remembered it.')
+  return ctx.sendMessage('OK! I got it.')
 });
 
 bot.command('bye').invoke(function (ctx) {
@@ -765,7 +768,7 @@ bot.command('bye').invoke(function (ctx) {
 });
 ```
 
-The next dialog shows this:
+This is how it works:
 ```
 me  > /hello
 bot > Hello! What is your name?
@@ -776,7 +779,7 @@ bot > Bye John
 ```
 
 #### context.data
-This variable works when rendering. For template rendering we use (ejs)[https://github.com/tj/ejs]. All the data you record will be available in the templates.
+This variable works when rendering message texts. For template rendering we use (ejs)[https://github.com/tj/ejs]. All the data you put in context.data is available in the templates.
 ```
 bot.texts({
   hello: {
@@ -792,13 +795,13 @@ bot.command('hello').invoke(function (ctx) {
 });
 ```
 
-The next dialog shows this:
+This is how it works:
 ```
 me  > /hello
 bot > Hello world, John!
 ```
 
-There is pre-defined method `render` in context.data. It can be used for rendering embedded keys:
+There is predefined method `render` in context.data. It can be used for rendering embedded keys:
 ```
 bot.texts({
   hello: {
@@ -816,7 +819,7 @@ bot.command('hello').invoke(function (ctx) {
 });
 ```
 
-Bot dialog
+Bot dialog:
 ```
 me  > /hello
 bot > Hello world, John! Good bye, John
@@ -824,18 +827,18 @@ bot > Hello world, John! Good bye, John
 
 
 #### context.meta
-Meta contain following fields:
+context.meta contains following fields:
   - `user` - see https://core.telegram.org/bots/api#user
   - `chat` - see https://core.telegram.org/bots/api#chat
-  - `sessionId` - key name for saving session in redis, currently it is `meta.chat.id`. So for group chats your session share between all users in chat.
+  - `sessionId` - key name for saving session in redis, currently it is `meta.chat.id`. So for group chats your session data is shared between all users in chat.
 
 #### context.command
 Represents currently handled command. Has following properties:
- - `name` - the name of command
- - `args` - arguments for command
+ - `name` - the name of a command
+ - `args` - arguments for a command
  - `type` - Can be `invoke` or `answer`. If handler is invoked with `.withContext` method, type is `synthetic`
 
-Suppose that we have the following code
+Suppose that we have the following code:
 ```js
 bot.command('hello')
 .invoke(function (ctx) {
@@ -861,16 +864,16 @@ bot > Type: answer; Name: hello; Answer: bye
 ```
 
 #### context.answer
-This is answer for command. It presents only if command is a text field.
+This is an answer for a command. Context.answer is defined only when user answers with a text message.
 
 #### context.message
-Presents message object. For more details look here: https://core.telegram.org/bots/api#message
+Represents message object. For more details see: https://core.telegram.org/bots/api#message
 
 #### context.bot
-Shorthand for bot instance
+Bot instance
 
 #### context.isRedirected
-Boolean. This flag means, that this command was achieved via `go` method. In other words, user did not type text `/command` in bot.
+Boolean. This flag is set to 'true' when a command was achieved via `go` method (user did not type text `/command` in bot).
 Let's look at the following example:
 ```js
 bot.command('hello').invoke(function (ctx) {
@@ -919,59 +922,58 @@ bot > isSynthetic in handler: true
 
 
 ### Context methods
-Context has the following defined methods.
+Context has the following methods.
 
 #### context.keyboard(keyboardDefinition)
-Set keyboard
+Sets keyboard
 ```js
 ctx.keyboard([[{'command 1': {go: 'command1'}}]])
 ```
 
 #### context.hideKeyboard()
-No send keyboard
 ```js
 ctx.hideKeyboard()
 ```
 
 #### context.render(key)
-Return rendered text or key
+Returns rendered text or key
 ```js
 ctx.texts({
   localization: {
     key: {
-      name: '<%=name%>'
+      name: 'Hi, <%=name%>'
     }
   }
 })
 ctx.data.name = 'John';
 var str = ctx.render('localization.key.name');
-console.log(str); // outputs 'John'
+console.log(str); // outputs 'Hi, John'
 ```
 
 #### context.go()
-Return <code>Promise</code>
-Go to some command
+Returns <code>Promise</code>
+Goes to some command
 ```js
 var command1 = bot.command('command1')
 var command2 = bot.command('command2').invoke(function (ctx) {
-  // go to command1
+  // Go to command1.
   return ctx.go('command1');
 })
 ```
 
 #### context.goParent()
-Return <code>Promise</code>
-Go to parent command. The command is considered a descendant if its name begins with the parent command name, for example `setting` is parent command, `settings_locale` is a descendant command.
+Returns <code>Promise</code>
+Goes to the parent command. A command is considered a descendant if its name begins with the parent command name, for example `setting` is a parent command, `settings_locale` is a descendant command.
 ```js
 var command1 = bot.command('command1')
 var command1Child = bot.command('command1_child').invoke(function (ctx) {
-  return ctx.goParent(); // go to command1
+  return ctx.goParent(); // Goes to command1.
 });
 ```
 
 #### context.goBack()
-Return <code>Promise</code>
-Go to previously invoked command.
+Returns <code>Promise</code>
+Goes to previously invoked command.
 Useful in keyboard 'Back' button.
 ```js
 bot.keyboard([[
@@ -980,8 +982,8 @@ bot.keyboard([[
 ```
 
 #### context.repeat()
-Return <code>Promise</code>
-Repeat current state, useful for handling wrong answers.
+Returns <code>Promise</code>
+Repeats current state, useful for handling wrong answers.
 ```js
 bot.command('command1')
 .invoke(function (ctx) {
@@ -989,42 +991,42 @@ bot.command('command1')
 })
 .answer(function (ctx) {
   if (isNaN(ctx.answer)) {
-    return ctx.repeat(); // send 'How old are your?', call 'invoke' handler
+    return ctx.repeat(); // Sends 'How old are your?', calls 'invoke' handler.
   }
 });
 ```
 
 #### context.end()
-Stop middlewares chain
+Stops middlewares chain.
 
 #### context.setLocale(locale)
-Set locale for context. Use it if you use localization
+Sets locale for the context. Use it if you need localization.
 ```js
 bot.texts({
   greeting: 'Hello <%=name%>!'
 })
 bot.use('before', function (ctx) {
-  ctx.setLocale('en')
+  ctx.setLocale('en');
 });
 ```
 
 #### context.getLocale()
-Return current locale
+Returns current locale
 
 ### context.sendMessage(text, [options])
-Return <code>Promise</code>
-Send text message.
+Returns <code>Promise</code>
+Sends text message.
 
 **See**: https://core.telegram.org/bots/api#sendmessage
 
 | Param | Type | Description |
 | --- | --- | --- |
-| text | <code>String</code> | Text  or localization key to be sent |
+| text | <code>String</code> | Text or localization key to be sent |
 | [options] | <code>Object</code> | Additional Telegram query options |
 
 #### context.forwardMessage(fromChatId, messageId)
-Return <code>Promise</code>
-Forward messages of any kind.
+Returns <code>Promise</code>
+Forwards messages of any kind.
 
 | Param | Type | Description |
 | --- | --- | --- |
@@ -1032,8 +1034,8 @@ Forward messages of any kind.
 | messageId | <code>Number</code> &#124; <code>String</code> | Unique message identifier |
 
 ### context.sendPhoto(photo, [options])
-Return <code>Promise</code>
-Send photo
+Returns <code>Promise</code>
+Sends photo
 
 **See**: https://core.telegram.org/bots/api#sendphoto
 
@@ -1043,8 +1045,8 @@ Send photo
 | [options] | <code>Object</code> | Additional Telegram query options |
 
 ### context.sendAudio(audio, [options])
-Return <code>Promise</code>
-Send audio
+Returns <code>Promise</code>
+Sends audio
 
 **See**: https://core.telegram.org/bots/api#sendaudio
 
@@ -1054,8 +1056,8 @@ Send audio
 | [options] | <code>Object</code> | Additional Telegram query options |
 
 ### context.sendDocument(A, [options])
-Return <code>Promise</code>
-Send Document
+Returns <code>Promise</code>
+Sends Document
 
 **See**: https://core.telegram.org/bots/api#sendDocument
 
@@ -1065,8 +1067,8 @@ Send Document
 | [options] | <code>Object</code> | Additional Telegram query options |
 
 ### context.sendSticker(A, [options])
-Return <code>Promise</code>
-Send .webp stickers.
+Returns <code>Promise</code>
+Sends .webp stickers.
 
 **See**: https://core.telegram.org/bots/api#sendsticker
 
@@ -1076,7 +1078,7 @@ Send .webp stickers.
 | [options] | <code>Object</code> | Additional Telegram query options |
 
 ### context.sendVideo(A, [options])
-Return <code>Promise</code>
+Returns <code>Promise</code>
 Use this method to send video files, Telegram clients support mp4 videos (other formats may be sent as Document).
 
 **See**: https://core.telegram.org/bots/api#sendvideo
@@ -1087,8 +1089,8 @@ Use this method to send video files, Telegram clients support mp4 videos (other 
 | [options] | <code>Object</code> | Additional Telegram query options |
 
 ### context.sendVoice(voice, [options])
-Return <code>Promise</code>
-Send voice
+Returns <code>Promise</code>
+Sends voice
 
 **Kind**: instance method of <code>[TelegramBot](#TelegramBot)</code>
 **See**: https://core.telegram.org/bots/api#sendvoice
@@ -1099,8 +1101,8 @@ Send voice
 | [options] | <code>Object</code> | Additional Telegram query options |
 
 ### context.sendChatAction(action)
-Return <code>Promise</code>
-Send chat action.
+Returns <code>Promise</code>
+Sends chat action.
 `typing` for text messages,
 `upload_photo` for photos, `record_video` or `upload_video` for videos,
 `record_audio` or `upload_audio` for audio files, `upload_document` for general files,
@@ -1113,8 +1115,8 @@ Send chat action.
 | action | <code>String</code> | Type of action to broadcast. |
 
 ### context.getUserProfilePhotos([offset], [limit])
-Return <code>Promise</code>
-Use this method to get a list of profile pictures for a user.
+Returns <code>Promise</code>
+Use this method to get the list of profile pictures for a user.
 Returns a [UserProfilePhotos](https://core.telegram.org/bots/api#userprofilephotos) object.
 
 **See**: https://core.telegram.org/bots/api#getuserprofilephotos
@@ -1125,8 +1127,8 @@ Returns a [UserProfilePhotos](https://core.telegram.org/bots/api#userprofilephot
 | [limit] | <code>Number</code> | Limits the number of photos to be retrieved. Values between 1—100 are accepted. Defaults to 100. |
 
 ### context.sendLocation(latitude, longitude, [options])
-Return <code>Promise</code>
-Send location.
+Returns <code>Promise</code>
+Sends location.
 Use this method to send point on the map.
 
 **See**: https://core.telegram.org/bots/api#sendlocation
