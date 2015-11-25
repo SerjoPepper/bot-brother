@@ -57,7 +57,7 @@ module.exports =
     locale = params.locale || constants.DEFAULT_LOCALE
     @_texts ||= {}
     @_texts[locale] ||= {}
-    _.merge(@_texts[locale], compileKeys(texts))
+    _.merge(@_texts[locale], compileKeys(_.extend({}, texts)))
     @
 
 
