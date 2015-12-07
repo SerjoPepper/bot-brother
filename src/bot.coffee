@@ -189,7 +189,7 @@ class Bot
         if @config.secure is false
           delete options.webHook.key
       else
-        options.polling = true
+        options.polling = @config.polling || true
     @api = new Api(@key, options)
     if @_isListen
       @api.on 'message', (msg) =>
