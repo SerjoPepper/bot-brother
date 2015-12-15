@@ -269,7 +269,7 @@ class Context
   @return {Promise}
   ###
   goBack: ->
-    @go(@_handler.getPrevStateName(), {noChangeHistory: true})
+    @go(@_handler.getPrevStateName(), {noChangeHistory: true, args: @_handler.getPrevStateArgs()})
 
 
   ###

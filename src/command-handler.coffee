@@ -30,6 +30,7 @@ class CommandHandler
     @session.meta.sessionId ||= @provideSessionId()
     @session.data ||= {} # user data
     @session.backHistory || = {}
+    @session.backHistoryArgs ||= {}
     @prevHandler = params.prevHandler
     @noChangeHistory = params.noChangeHistory
     @args = params.args
@@ -114,6 +115,7 @@ class CommandHandler
       @session.invokeArgs = @args
       if !@noChangeHistory && @prevHandler?.name && @prevHandler.name != @name
         @session.backHistory[@name] = @prevHandler.name
+        @session.backHistoryArgs[@name] = @prevHandler.args
       @session.meta.current = @name
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
       @session.meta.user = @message?.from || @session.meta.user
@@ -216,6 +218,9 @@ class CommandHandler
   ###
   getPrevStateName: ->
     @session.backHistory[@name]
+
+  getPrevStateArgs: ->
+    @session.backHistoryArgs?[@name]
 
   ###
   Render keyboard
