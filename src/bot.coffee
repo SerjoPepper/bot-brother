@@ -131,7 +131,7 @@ class Bot
   withContext: (chatId, cb) ->
     @sessionManager.get(chatId).then (session) =>
       @contextFromSession(session).then (context) ->
-        promise.try -> cb(context)
+        promise.resolve(cb(context))
       .then =>
         @sessionManager.save(chatId, session)
 
@@ -144,7 +144,7 @@ class Bot
   withContexts: (chatIds, cb) ->
     @sessionManager.getMultiple(chatIds).map (session) =>
       @contextFromSession(session).then (context) ->
-        promise.try -> cb(context)
+        promise.resolve(cb(context))
       .then =>
         @sessionManager.save(session.meta.sessionId, session)
 
@@ -155,7 +155,7 @@ class Bot
   withAllContexts: (cb) ->
     @sessionManager.getAll().map (session) =>
       @contextFromSession(session).then (context) ->
-        promise.try -> cb(context)
+        promise.resolve(cb(context))
       .then =>
         @sessionManager.save(session.meta.sessionId, session)
 
