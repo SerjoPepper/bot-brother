@@ -187,9 +187,8 @@ class CommandHandler
   @return {Promise}
   ###
   executeMiddleware: (middleware) ->
-    promise.try =>
-      unless @context.isEnded
-        middleware(@context)
+    unless @context.isEnded
+      promise.resolve(middleware(@context))
 
 
   ###
