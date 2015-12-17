@@ -116,10 +116,9 @@ class Bot
   @return {Promise} return context
   ###
   contextFromSession: (session) ->
-    promise.try =>
-      handler = new CommandHandler(bot: @, session: session, isSynthetic: true)
-      handler.handle().then ->
-        handler.context
+    handler = new CommandHandler(bot: @, session: session, isSynthetic: true)
+    promise.resolve(handler.handle()).then ->
+      handler.context
 
 
   ###
@@ -220,8 +219,7 @@ class Bot
     sessionId = @_provideSessionId(message)
     @sessionManager.get(sessionId).then (session) =>
       handler = new CommandHandler(message: message, bot: @, session: session)
-      promise.try ->
-        handler.handle()
+      promise.resolve(handler.handle())
       .then =>
         @sessionManager.save(sessionId, handler.session)
 
