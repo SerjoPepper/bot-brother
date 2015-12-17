@@ -335,6 +335,7 @@ class Context
         if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
           keyboard: markup, resize_keyboard: true
         else
+          @_handler.unsetKeyboardMap()
           if noPrivate
             force_reply: true
           else

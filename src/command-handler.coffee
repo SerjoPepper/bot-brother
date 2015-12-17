@@ -234,7 +234,7 @@ class CommandHandler
     keyboard = null
     for command in chain
       keyboard = command.getKeyboard(name, locale) || command.getKeyboard(name)
-      break if keyboard
+      break if typeof keyboard != 'undefined'
 
     keyboard = keyboard?.render(locale, chain, data, @)
     if keyboard
@@ -244,6 +244,9 @@ class CommandHandler
     else
       @session.keyboardMap = {}
       null
+
+  unsetKeyboardMap: ->
+    @session.keyboardMap = {}
 
 
 
