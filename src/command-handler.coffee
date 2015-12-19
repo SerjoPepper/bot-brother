@@ -76,7 +76,7 @@ class CommandHandler
         if text.indexOf('/') is 0
           @type = 'invoke'
           params = text.slice(1).split(/\s+/)
-          @name = params[0]
+          @name = params[0].toLowerCase()
         else
           @type = 'answer'
           @name = @session.meta?.current
@@ -138,9 +138,9 @@ class CommandHandler
           go = @answer.go
           args = @answer.args
           @answer.handler = (ctx) -> ctx.go(go, {args: args})
-        @executeMiddleware(@answer.handler)
+        promise.resolve(@executeMiddleware(@answer.handler))
       else
-        @executeStage(stage)
+        promise.resolve(@executeStage(stage))
 
 
   ###
