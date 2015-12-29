@@ -217,11 +217,15 @@ class Bot
 
   _handleMessage: (message) ->
     sessionId = @_provideSessionId(message)
-    @sessionManager.get(sessionId).then (session) =>
-      handler = new CommandHandler(message: message, bot: @, session: session)
-      promise.resolve(handler.handle())
-      .then =>
-        @sessionManager.save(sessionId, handler.session)
+    # 5 minutes to handle message
+    if message.date * 1e3 + 60e3 * 5 > Date.now()
+      @sessionManager.get(sessionId).then (session) =>
+        handler = new CommandHandler(message: message, bot: @, session: session)
+        promise.resolve(handler.handle())
+        .then =>
+          @sessionManager.save(sessionId, handler.session)
+    else
+      promise.reject('Bad time: ', JSON.stringify(message))
 
 
 _.extend(Bot::, mixins)
