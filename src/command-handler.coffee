@@ -76,7 +76,7 @@ class CommandHandler
         if text.indexOf('/') is 0
           @type = 'invoke'
           params = text.slice(1).split(/\s+/)
-          @name = params[0].toLowerCase()
+          @name = params[0].toLowerCase().replace(/@.+$/, '')
         else
           @type = 'answer'
           @name = @session.meta?.current
