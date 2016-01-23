@@ -9,7 +9,7 @@ Main features:
   - templated keyboards and messages
   - navigation between commands
 
-This bots work on top of *bot-brother*:
+This bots work on top of **bot-brother**:
 [@weatherman_bot](https://telegram.me/weatherman_bot)
 [@zodiac_bot](https://telegram.me/zodiac_bot)
 [@my_ali_bot](https://telegram.me/my_ali_bot)
