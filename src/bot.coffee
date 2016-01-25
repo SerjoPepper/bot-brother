@@ -208,7 +208,7 @@ class Bot
 
 
   _setWebhook: ->
-    @api.setWebHook(@config.webHook.url, fs.readFileSync(@config.webHook.cert)).finally (res) ->
+    @api.setWebHook(@config.webHook.url, @config.webHook.cert).finally (res) ->
       console.log('webhook res:', res)
 
 
