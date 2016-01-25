@@ -225,7 +225,7 @@ class Bot
         .then =>
           @sessionManager.save(sessionId, handler.session)
     else
-      promise.reject('Bad time: ', JSON.stringify(message))
+      promise.reject('Bad time: ' + JSON.stringify(message))
 
 
 _.extend(Bot::, mixins)
