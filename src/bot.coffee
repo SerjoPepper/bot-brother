@@ -192,8 +192,9 @@ class Bot
     @api = new Api(@key, options)
     if @_isListen
       @api.on 'message', (msg) =>
-        @_handleMessage(msg).catch (err) ->
-          console.error(err, err.stack)
+        process.nextTick =>
+          @_handleMessage(msg).catch (err) ->
+            console.error(err, err.stack)
       if @config.webHook
         @_setWebhook()
       else
