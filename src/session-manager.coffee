@@ -10,20 +10,23 @@ class SessionManager
 
   constructor: (@bot) ->
 
+  parseSession: (session, id) ->
+    if session then jsonfn.parse(session) else {meta: chat: id: id}
+
   get: (id) ->
     @bot.redis.hgetAsync("#{PREFIX}:#{@bot.id}", id).then (session) ->
-      session && jsonfn.parse(session)
+      session = parseSession(session, id)
 
   save: (id, session) ->
     @bot.redis.hsetAsync("#{PREFIX}:#{@bot.id}", id, jsonfn.stringify(session))
 
   getMultiple: (ids) ->
     @bot.redis.hmgetAsync(["#{PREFIX}:#{@bot.id}"].concat(ids)).then (sessions) ->
-      sessions.filter(Boolean).map (session) -> jsonfn.parse(session)
+      sessions.filter(Boolean).map (session) -> parseSession(session)
 
   getAll: ->
     @bot.redis.hvalsAsync("#{PREFIX}:#{@bot.id}").then (sessions) ->
-      sessions.filter(Boolean).map (session) -> jsonfn.parse(session)
+      sessions.filter(Boolean).map (session) -> parseSession(session)
 
 
 module.exports = SessionManager
