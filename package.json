@@ -1,6 +1,6 @@
 {
   "name": "bot-brother",
-  "version": "1.0.47",
+  "version": "1.0.48",
   "description": "Framework for creation telegram bots",
   "main": "index.js",
   "directories": {

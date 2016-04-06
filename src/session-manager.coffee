@@ -3,15 +3,14 @@ jsonfn = require 'json-fn'
 redis = require 'redis'
 
 PREFIX = 'BOT_SESSIONS'
+parseSession = (session, id) ->
+  if session then jsonfn.parse(session) else {meta: chat: id: id}
 
 promise.promisifyAll(redis)
 
 class SessionManager
 
   constructor: (@bot) ->
-
-  parseSession: (session, id) ->
-    if session then jsonfn.parse(session) else {meta: chat: id: id}
 
   get: (id) ->
     @bot.redis.hgetAsync("#{PREFIX}:#{@bot.id}", id).then (session) ->
