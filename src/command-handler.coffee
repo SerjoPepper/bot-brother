@@ -80,6 +80,10 @@ class CommandHandler
         else
           @type = 'answer'
           @name = @session.meta?.current
+        if @type is 'answer' && !@name
+          @name = 'start'
+          @type = 'invoke'
+          @args = []
       else if !@isSynthetic
         @type = 'answer'
         @name = @session.meta?.current
