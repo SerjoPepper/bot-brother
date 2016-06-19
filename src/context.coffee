@@ -1,11 +1,18 @@
 _ = require 'lodash'
 emoji = require 'node-emoji'
 mixins = require './mixins'
+co = require 'co'
 
 prepareText = (text) ->
   emoji.emojify(text)
 
-RESTRICTED_PROPS = ['isRedirected', 'isSynthetic', 'message', 'session', 'bot', 'command', 'isEnded', 'meta']
+RETRIABLE_ERRORS = ['ECONNRESET', 'ENOTFOUND', 'ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNREFUSED', 'EHOSTUNREACH', 'EPIPE', 'EAI_AGAIN']
+RESTRICTED_PROPS = [
+  'isRedirected', 'isSynthetic', 'message', 'session'
+  'bot', 'command', 'isEnded', 'meta', 'type'
+  'callbackData', 'inlineQuery', 'chosenInlineResult'
+]
+HTTP_RETRIES = 20
 
 ###
 Context of the bot command
@@ -25,8 +32,11 @@ class Context
   constructor: (handler) ->
     @_handler = handler
     @bot = @_handler.bot
+    @type = @_handler.type
     @session = @_handler.session.data
     @message = @_handler.message
+    @callbackData = @_handler.callbackData
+    @callbackQuery = @_handler.callbackQuery
     @isRedirected = @_handler.isRedirected # we transit to that state with go
     @isSynthetic = @_handler.isSynthetic
     @meta = @_handler.session.meta # команда
@@ -34,12 +44,17 @@ class Context
       name: @_handler.name
       args: @_handler.args
       type: @_handler.type
+      callbackData: @_handler.callbackData
     }
     @_handler = handler
     @_api = @_handler.bot.api
     @_user = @_handler.session.meta.user
     @_temp = {} # dont clone
     @data = {} # template data
+
+  setInlineQuery: (@inlineQuery) ->
+
+  setChosenInlineResult: (@chosenInlineResult) ->
 
   ###
   Initialize
@@ -51,7 +66,6 @@ class Context
       type: @_handler.type
     }
     @answer = @_handler.answer?.value
-
 
   ###
   Hide keyboard
@@ -109,8 +123,7 @@ class Context
   sendMessage: (text, params = {}) ->
     if params.render != false
       text = @render(text)
-    @_withMiddlewares =>
-      @_api.sendMessage(@meta.chat.id, prepareText(text), @_prepareParams(params))
+    @_executeApiAction 'sendMessage', @meta.chat.id, prepareText(text), @_prepareParams(params)
 
 
   ###
@@ -132,8 +145,7 @@ class Context
       if params.render != false
         params.caption = @render(params.caption)
       params.caption = prepareText(params.caption)
-    @_withMiddlewares =>
-      @_api.sendPhoto(@meta.chat.id, photo, @_prepareParams(params))
+    @_executeApiAction 'sendPhoto', @meta.chat.id, photo, @_prepareParams(params)
 
 
   ###
@@ -144,8 +156,7 @@ class Context
   @return {Promise}
   ###
   forwardMessage: (fromChatId, messageId) ->
-    @_withMiddlewares =>
-      @_api.forwardMessage(@meta.chat.id, fromChatId, messageId)
+    @_executeApiAction 'forwardMessage', @meta.chat.id, fromChatId, messageId
 
 
   ###
@@ -156,8 +167,7 @@ class Context
   @see https://core.telegram.org/bots/api#sendaudio
   ###
   sendAudio: (audio, params) ->
-    @_withMiddlewares =>
-      @_api.sendAudio(@meta.chat.id, audio, @_prepareParams(params))
+    @_executeApiAction 'sendAudio', @meta.chat.id, audio, @_prepareParams(params)
 
 
   ###
@@ -168,8 +178,7 @@ class Context
   @see https://core.telegram.org/bots/api#sendDocument
   ###
   sendDocument: (doc, params) ->
-    @_withMiddlewares =>
-      @_api.sendDocument(@meta.chat.id, doc, @_prepareParams(params))
+    @_executeApiAction 'sendDocument', @meta.chat.id, doc, @_prepareParams(params)
 
 
   ###
@@ -180,8 +189,7 @@ class Context
   @see https://core.telegram.org/bots/api#sendsticker
   ###
   sendSticker: (sticker, params) ->
-    @_withMiddlewares =>
-      @_api.sendSticker(@meta.chat.id, sticker, @_prepareParams(params))
+    @_executeApiAction 'sendSticker', @meta.chat.id, sticker, @_prepareParams(params)
 
 
   ###
@@ -192,8 +200,7 @@ class Context
   @see https://core.telegram.org/bots/api#sendvideo
   ###
   sendVideo: (video, params) ->
-    @_withMiddlewares =>
-      @_api.sendVideo(@meta.chat.id, video, @_prepareParams(params))
+    @_executeApiAction 'sendVideo', @meta.chat.id, video, @_prepareParams(params)
 
 
   ###
@@ -208,8 +215,7 @@ class Context
   @see https://core.telegram.org/bots/api#sendchataction
   ###
   sendChatAction: (action) ->
-    @_withMiddlewares =>
-      @_api.chatAction(@meta.chat.id, action)
+    @_executeApiAction 'chatAction', @meta.chat.id, action
 
 
   ###
@@ -222,9 +228,56 @@ class Context
   @see https://core.telegram.org/bots/api#sendlocation
   ###
   sendLocation: (latitude, longitude, params) ->
-    @_withMiddlewares =>
-      @_api.sendLocation(@meta.chat.id, latitude, longitude, @_prepareParams(params))
+    @_executeApiAction 'sendLocation', @meta.chat.id, latitude, longitude, @_prepareParams(params)
 
+
+  updateCaption: (text, params = {}) ->
+    text = @render(text) if params.render != false
+    _params = {
+      reply_markup: @_provideKeyboardMarkup(inline: true)
+    }
+    if @callbackQuery.inline_message_id
+      _params.inline_message_id = @callbackQuery.inline_message_id
+    else
+      _.extend(_params, {
+        chat_id: @meta.chat.id
+        message_id: @callbackQuery.message.message_id
+      })
+    @_executeApiAction 'editMessageCaption', prepareText(text), _.extend(_params, params)
+
+
+  updateText: (text, params = {}) ->
+    text = @render(text) if params.render != false
+    _params = {
+      reply_markup: @_provideKeyboardMarkup(inline: true)
+    }
+    if @callbackQuery.inline_message_id
+      _params.inline_message_id = @callbackQuery.inline_message_id
+    else
+      _.extend(_params, {
+        chat_id: @meta.chat.id
+        message_id: @callbackQuery.message.message_id
+      })
+    @_executeApiAction 'editMessageText', prepareText(text), _.extend(_params, params)
+
+
+  updateKeyboard: (params = {}) ->
+    _params = {}
+    if @callbackQuery.inline_message_id
+      _params.inline_message_id = @callbackQuery.inline_message_id
+    else
+      _.extend(_params, {
+        chat_id: @meta.chat.id
+        message_id: @callbackQuery.message.message_id
+      })
+    @_executeApiAction 'editMessageReplyMarkup', @_provideKeyboardMarkup(inline: true), _.extend(_params, params)
+
+  answerInlineQuery: (results, params) ->
+    results.forEach (result) =>
+      if result.keyboard
+        result.reply_markup = inline_keyboard: @_renderKeyboard(inline: true, keyboard: result.keyboard)
+        delete result.keyboard
+    @_executeApiAction 'answerInlineQuery', @inlineQuery.id, results, params
 
   ###
   Set locale for context
@@ -248,13 +301,19 @@ class Context
   @param {String} name command name
   @param {Object} params params
   @option params {Array<String>} [args] Arguments for command
-  @option params {Boolean} [noChangeHistory] No change chain history
+  @option params {Boolean} [noChangeHistory=false] No change chain history
+  @option params {String} [stage='invoke'] 'invoke'|'answer'|'callback'
   @return {Promise}
   ###
   go: (name, params) ->
     @end()
     @_handler.go(name, params)
 
+  ###
+  Same as @go, but stage is 'callback'
+  ###
+  goCallback: (name, params) ->
+    @go(name, _.extend(params, stage: 'callback'))
 
   ###
   Go to parent command.
@@ -270,7 +329,6 @@ class Context
   ###
   goBack: ->
     @go(@_handler.getPrevStateName(), {noChangeHistory: true, args: @_handler.getPrevStateArgs()})
-
 
   ###
   Repeat current command
@@ -299,15 +357,33 @@ class Context
     _.extend(res, _.pick(@, setProps))
 
 
-  _withMiddlewares: (cb) ->
-    @_handler.executeStage('beforeSend').then ->
-      cb()
-    .then (result) =>
-      @_handler.executeStage('afterSend').then -> result
+  _executeApiAction: (method, args...) ->
+    @_handler.executeStage('beforeSend').then =>
+      retries = HTTP_RETRIES
+      execAction = =>
+        @bot.rateLimiter(=> @_api[method](args...)).catch (e) ->
+          httpCode = parseInt(e.message)
+          if retries-- > 0 && (e?.code in RETRIABLE_ERRORS || 500 <= httpCode < 600 || httpCode is 420)
+            execAction()
+          else
+            throw e
+      execAction()
+    .then co.wrap (message) =>
+      unless @_temp.inlineMarkup
+        inlineMarkup = @_provideKeyboardMarkup(inline: true)
+        if inlineMarkup && (method not in ['editMessageReplyMarkup', 'editMessageText', 'editMessageCaption']) && message?.message_id
+          yield @_executeApiAction('editMessageReplyMarkup', JSON.stringify(inlineMarkup), {
+            chat_id: @meta.chat.id
+            message_id: message.message_id
+          })
+      @_handler.executeStage('afterSend').then -> message
 
 
   _prepareParams: (params = {}) ->
     markup = @_provideKeyboardMarkup()
+    unless markup
+      markup = @_provideKeyboardMarkup(inline: true)
+      @_temp.inlineMarkup = true
     _params = {}
     if params.caption
       params.caption = prepareText(params.caption)
@@ -316,30 +392,40 @@ class Context
     _.extend(_params, params)
 
 
-  _renderKeyboard: ->
-    if @_temp.keyboardName is null
+  _renderKeyboard: (params) ->
+    if @_temp.keyboardName is null && !params.inline
       null
     else
-      @_handler.renderKeyboard(@_temp.keyboardName)
+      @_handler.renderKeyboard(@_temp.keyboardName, params)
 
 
-  _provideKeyboardMarkup: ->
+  _provideKeyboardMarkup: (params = {}) ->
     noPrivate = @meta.chat.type != 'private'
-    if @_handler.command?.compliantKeyboard && noPrivate
-      force_reply: true
-    else
-      if @_temp.usePrevKeyboard
-        null
+    if params.inline
+      markup = @_renderKeyboard(params)
+      if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
+        inline_keyboard: markup
       else
-        markup = @_renderKeyboard()
-        if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
-          keyboard: markup, resize_keyboard: true
+        null
+    else
+      if @_handler.command?.compliantKeyboard && noPrivate
+        force_reply: true
+      else
+        if @_temp.usePrevKeyboard || @_usePrevKeyboard
+          null
         else
-          @_handler.unsetKeyboardMap()
-          if noPrivate
-            force_reply: true
+          markup = @_renderKeyboard(params)
+          if markup.prevKeyboard
+            null
           else
-            hide_keyboard: true
+            if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
+              keyboard: markup, resize_keyboard: true
+            else
+              @_handler.unsetKeyboardMap()
+              if noPrivate
+                force_reply: true
+              else
+                hide_keyboard: true
 
 
 

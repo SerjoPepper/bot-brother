@@ -5,6 +5,14 @@ _s = require 'underscore.string'
 _ = require 'lodash'
 emoji = require 'node-emoji'
 ejs = require 'ejs'
+co = require 'co'
+Keyboard = require './keyboard'
+
+resolveYield = (value) ->
+  if value && (value.then || _.isObject(value) and value.toString() == '[object Generator]' || _.isFunction(value))
+    value
+  else
+    Promise.resolve(value)
 
 ###
 CommandHandler class
@@ -19,10 +27,14 @@ class CommandHandler
   constructor: (params) ->
     @name = params.name
     @message = params.message
+    @inlineQuery = params.inlineQuery
+    @chosenInlineResult = params.chosenInlineResult
+    @callbackQuery = params.callbackQuery
+    @callbackData = params.callbackData
     @bot = params.bot
     @locale = params.prevHandler?.locale
     @session = params.session || {}
-    @type = if @name then 'invoke' else null # 'invoke' or 'answer'
+    @type = params.type # 'invoke'/'answer'/'synthetic'/'callback'
     @isRedirected = !!params.prevHandler
     @session.meta ||= {} # current, prev, from, chat
     @session.meta.user ||= @message?.from
@@ -40,9 +52,7 @@ class CommandHandler
     @isSynthetic = params.isSynthetic
     @command = null
     @context = @prevHandler?.context.clone(@) || new Context(@)
-
-    if @isSynthetic
-      @type = 'synthetic'
+    @type = 'synthetic' if @isSynthetic
   ###
   @param {String} locale current locale
   ###
@@ -70,12 +80,12 @@ class CommandHandler
   @return {Promise}
   ###
   handle: ->
-    if @message && !@prevHandler
+    if !@type && @message && !@prevHandler
       if @message?.text
         text = @message.text = _s.trim(@message.text)
         if text.indexOf('/') is 0
           @type = 'invoke'
-          params = text.slice(1).split(/\s+/)
+          params = text.slice(1).split(/\s+|__/)
           @name = params[0].toLowerCase().replace(/@.+$/, '')
         else
           @type = 'answer'
@@ -88,6 +98,9 @@ class CommandHandler
         @type = 'answer'
         @name = @session.meta?.current
 
+    if !@type && @callbackQuery
+      @type = 'callback'
+
     @commandsChain = @bot.getCommandsChain(@name)
     if _.isString(@commandsChain[0]?.name)
       @command = @commandsChain[0]
@@ -96,22 +109,31 @@ class CommandHandler
     if @commandsChain.length
       if @type is 'invoke'
         @args ||= params?[1..] || []
-    else if !@isSynthetic
+    else if !@isSynthetic && @type is 'answer'
       @type = 'invoke'
       @name = @bot.getDefaultCommand()?.name
       @commandsChain = @bot.getCommandsChain(@name)
 
-    return if !@name && !@isSynthetic
+    return if !@name && !@isSynthetic && @type != 'callback'
 
     if @type is 'answer'
       @args = @session.invokeArgs
       unless _.isEmpty(@session.keyboardMap)
         @answer = @session.keyboardMap[@message.text]
         unless @answer?
-          if @command?.compliantKeyboard
+          if @command?.compliantKeyboard || _.values(@session.keyboardMap).some((button) -> (button.requestContact || button.requestContact))
             @answer = value: @message.text
           else
             return
+        else if @answer.go
+          @goHandler = switch @answer.go
+            when '$back'
+              (ctx) -> ctx.goBack()
+            when '$parent'
+              (ctx) -> ctx.goParent()
+            else
+              (ctx) =>
+                ctx.go(@answer.go, {args: @answer.args})
       else
         @answer = value: @message.text
 
@@ -124,27 +146,35 @@ class CommandHandler
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
       @session.meta.user = @message?.from || @session.meta.user
 
+    if @type is 'callback' && !@prevHandler
+      [_name, _args, _value, _callbackData...] = @callbackQuery.data.split('|')
+      _callbackData = JSON.parse(_callbackData.join('|'))
+      _args = _.compact(_args.split(','))
+      @callbackData = _callbackData
+      @goHandler = (ctx) -> ctx.go(_name, {
+        args: _args
+        value: _value
+        callbackData: _callbackData
+        callbackQuery: @callbackQuery
+      })
+
     @middlewaresChains = @bot.getMiddlewaresChains(@commandsChain)
 
     @context.init()
 
-    promise.resolve(
-      _(constants.STAGES)
-      .sortBy('priority')
-      .reject('noExecute')
-      .filter (stage) => !stage.type || stage.type is @type
-      .map('name')
-      .value()
-    ).each (stage) =>
-      # если в ответе есть обработчик - исполняем его
-      if stage is 'answer' and (@answer?.handler? || @answer?.go?)
-        if @answer?.go?
-          go = @answer.go
-          args = @answer.args
-          @answer.handler = (ctx) -> ctx.go(go, {args: args})
-        promise.resolve(@executeMiddleware(@answer.handler))
-      else
-        promise.resolve(@executeStage(stage))
+    if @goHandler
+      @executeMiddleware(@goHandler)
+    else
+      promise.resolve(
+        _(constants.STAGES)
+        .sortBy('priority')
+        .reject('noExecute')
+        .filter (stage) => !stage.type || stage.type is @type
+        .map('name')
+        .value()
+      ).each (stage) =>
+        # если в ответе есть обработчик - исполняем его
+        @executeStage(stage)
 
 
   ###
@@ -181,18 +211,18 @@ class CommandHandler
   @param {String} stage
   @return {Promise}
   ###
-  executeStage: (stage) ->
-    promise.resolve(@middlewaresChains[stage] || []).each (middleware) =>
-      @executeMiddleware(middleware)
+  executeStage: co.wrap (stage) ->
+    for middleware in @middlewaresChains[stage] || []
+      yield resolveYield(@executeMiddleware(middleware))
 
 
   ###
   @param {Function} middleware
   @return {Promise}
   ###
-  executeMiddleware: (middleware) ->
+  executeMiddleware: co.wrap (middleware) ->
     unless @context.isEnded
-      promise.resolve(middleware(@context))
+      yield resolveYield(middleware(@context))
 
 
   ###
@@ -205,14 +235,17 @@ class CommandHandler
   ###
   go: (name, params = {}) ->
     message = _.extend({}, @message)
+    [name, type] = name.split('$')
     handler = new CommandHandler({
-      message: message
+      name
+      message
       bot: @bot
       session: @session
       prevHandler: @
-      name: name
       noChangeHistory: params.noChangeHistory
-      args: params.args
+      args: params.args,
+      callbackData: params.callbackData || @callbackData,
+      type: params.type || type || 'invoke'
     })
     handler.handle()
 
@@ -230,28 +263,30 @@ class CommandHandler
   @param {String} name custom keyboard name
   @return {Object} keyboard array of keyboard
   ###
-  renderKeyboard: (name) ->
+  renderKeyboard: (name, params = {}) ->
     locale = @getLocale()
     chain = @getFullChain()
     data = @context.data
     keyboard = null
     for command in chain
-      keyboard = command.getKeyboard(name, locale) || command.getKeyboard(name)
+      if command.prevKeyboard && !params.inline
+        return {prevKeyboard: true}
+      keyboard = params.keyboard && new Keyboard(params.keyboard, params) ||
+        command.getKeyboard(name, locale, params) ||
+        command.getKeyboard(name, null, params)
       break if typeof keyboard != 'undefined'
 
     keyboard = keyboard?.render(locale, chain, data, @)
     if keyboard
-      {markup: markup, map: map} = keyboard
-      @session.keyboardMap = map
+      {markup, map} = keyboard
+      @session.keyboardMap = map unless params.inline
       markup
     else
-      @session.keyboardMap = {}
+      @session.keyboardMap = {} unless params.inline
       null
 
   unsetKeyboardMap: ->
     @session.keyboardMap = {}
-
-
 
 
 module.exports = CommandHandler

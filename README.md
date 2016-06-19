@@ -1,6 +1,5 @@
 # Bot-brother
 Node.js library to help you easy create telegram bots. Works on top of [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api)
-Redis 2.8+ is required.
 
 Main features:
   - sessions

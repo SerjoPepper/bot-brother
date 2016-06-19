@@ -3,12 +3,14 @@ botanio = require 'botanio'
 module.exports.botanio = (key) ->
   botan = botanio(key)
   (context) ->
-    if !context.isBotanioTracked && !context.isSynthetic && !context.isRedirected
+    if !context.isBotanioTracked && context.type != 'synthetic' && !context.isRedirected
       context.isBotanioTracked = true
-      botan.track(context.message, context.command.name)
+      {message, inlineQuery, callbackQuery, command} = context
+      botan.track(message || inlineQuery || callbackQuery, command.name)
       return
 
 module.exports.typing = ->
   (context) ->
-    context.bot.api.sendChatAction(context.meta.chat.id, 'typing')
-    return
+    if context.message && context.type != 'callback'
+      context.bot.api.sendChatAction(context.meta.chat.id, 'typing')
+      return

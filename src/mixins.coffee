@@ -28,7 +28,8 @@ module.exports =
   # @param {Array<Array>} keyboard keyboard markup
   # @param {Object} params params
   # @option params {String} [lang] a lang of keyboard
-  # @option params {String} [type] row or table, default is table
+  # @option params {String} [type] 'row' or 'table', default is 'table'
+  # @option params {Boolean} [inline=false]
   keyboard: (name, keyboard, params) ->
     # union format
     if !_.isString(name)
@@ -36,20 +37,37 @@ module.exports =
       keyboard = name
       name = constants.DEFAULT_KEYBOARD
     params ||= {}
+    if params.inline
+      name += '__inline'
     locale = params.locale || constants.DEFAULT_LOCALE
     @_keyboards ||= {}
     @_keyboards[locale] ||= {}
     @_keyboards[locale][name] = if keyboard then new Keyboard(keyboard, params, @) else null
     @
 
-  getKeyboard: (name = constants.DEFAULT_KEYBOARD, locale = constants.DEFAULT_LOCALE, type) ->
+  usePrevKeyboard: ->
+    @prevKeyboard = true
+    @
+
+  # Add inline keyboard
+  inlineKeyboard: (name, keyboard, params) ->
+    if !_.isString(name)
+      params = keyboard
+      keyboard = name
+      name = constants.DEFAULT_KEYBOARD
+    params ||= {}
+    @keyboard(name, keyboard, _.extend(params, inline: true))
+    @
+
+  getKeyboard: (name = constants.DEFAULT_KEYBOARD, locale = constants.DEFAULT_LOCALE, params = {}) ->
+    {inline, type} = params
+    if inline
+      name += '__inline'
     keyboard = @_keyboards?[locale]?[name]
     if type
       type == keyboard?.type && keyboard
     else
       keyboard
-
-  includeKeyboard: (name) ->
 
 
   # добавляем текста

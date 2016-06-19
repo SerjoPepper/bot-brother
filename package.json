@@ -1,6 +1,6 @@
 {
   "name": "bot-brother",
-  "version": "1.0.48",
+  "version": "1.0.49",
   "description": "Framework for creation telegram bots",
   "main": "index.js",
   "directories": {
@@ -17,7 +17,8 @@
   "keywords": [
     "telegram",
     "bot",
-    "telegram-bot"
+    "telegram-bot",
+    "framework"
   ],
   "author": "Sergey Pereskokov serjopepper@gmail.com",
   "license": "ISC",
@@ -28,13 +29,14 @@
   "dependencies": {
     "bluebird": "^2.9.34",
     "botanio": "0.0.6",
+    "co": "^4.6.0",
     "dot-object": "^1.1.0",
     "ejs": "^2.3.3",
-    "json-fn": "^0.60.0",
     "lodash": "^3.10.1",
+    "mkdirp": "^0.5.1",
     "node-emoji": "^1.0.3",
-    "node-telegram-bot-api": "git+https://github.com/SerjoPepper/node-telegram-bot-api.git#master",
-    "redis": "^0.12.1",
+    "node-telegram-bot-api": "^0.23.3",
+    "redis": "^2.6.1",
     "underscore.string": "^3.1.1"
   },
   "devDependencies": {

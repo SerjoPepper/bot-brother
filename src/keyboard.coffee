@@ -18,21 +18,39 @@ Keyboard examples
   ], [
     {'text.key': {go: 'state.name'}}
     {'text.key': {go: 'state.name'}}
-    {'text.key': (ctx) -> $.goBack()}
-    {'text.key': (ctx) -> $.goParent()}
-    {'text.key': {handler: ($) -> $.goParent(), isShown: (ctx) -> ctx.data.user.age > 18}}
+    {'text.key': {go: 'state.name'}}
+    {'text.key': {go: 'state.name'}}
+    {'text.key': {go: 'state.name$callback'}}
+    {'text.key': {go: '$back', args: [123,123]}}
+    {'text.key': {go: '$parent', args: [234, 567]}}
+    {'text.key': {go: '$parent', args: [234, 567], isShown: (ctx) -> ctx.data.user.age > 18}}
   ],
   'keyboardTemplate' # embed keyboard
 ]
 
 ###
 
-KEYS = ['key', 'text', 'value', 'handler', 'go', 'isShown']
+KEYS = [
+  'key',
+  'text',
+  'value',
+  'go',
+  'args',
+  'isShown',
+  # only for inlineKeyboard
+  'url',
+  'callbackData',
+  'switchInlineQuery',
+  # only for no inlineKeyboard
+  'requestContact',
+  'requestLocation'
+]
 
 class Keyboard
 
   constructor: (keyboard, params, @command) ->
     @type = params.type || 'table' # 'table' or 'row'
+    @inline = params.inline
     @keyboard = _.cloneDeep(keyboard).map (row, i) =>
       if @type is 'row' && _.isPlainObject(row)
         row = @processColumn(row)
@@ -89,7 +107,7 @@ class Keyboard
 
   embedLayout: (name, chain, locale, type) ->
     for command in chain
-      keyboard = command.getKeyboard(name, locale, type) || command.getKeyboard(name, null, type)
+      keyboard = command.getKeyboard(name, locale, {type}) || command.getKeyboard(name, null, {type})
       break if keyboard
     if !keyboard
       throw new Error("Can not find keyboard: #{name}")
@@ -107,13 +125,33 @@ class Keyboard
           column.text(data)
         else
           handler.renderText(column.key, data)
+        for k in ['args', 'callbackData', 'value']
+          if _.isFunction(column[k])
+            column[k] = column[k](handler.context)
         text = emoji.emojify(text)
-        if !column.isShown || column.isShown(handler.context)
-          markupRow.push(text)
-          map[text] = {handler: column.handler, value: column.value, go: column.go, args: column.args}
+        if !_.isFunction(column.isShown) || column.isShown(handler.context)
+          button = {text}
+          if @inline
+            button.url = column.url if column.url
+            button.switch_inline_query = column.switchInlineQuery if column.switchInlineQuery?
+            button.callback_data = [
+              column.go || handler.name + '$callback',
+              column.args?.join(',') || '',
+              column.value || '',
+              JSON.stringify(column.callbackData || {})
+            ].join('|')
+          else
+            button.request_contact = true if column.requestContact
+            button.request_location = true if column.requestLocation
+          markupRow.push(button)
+          map[text] = _.pick(
+            column,
+            'value', 'go', 'args',
+            'requestContact', 'requestLocation'
+          )
       markup.push(markupRow) if markupRow.length
 
-    {markup: markup, map: map}
+    {markup, map}
 
 
 module.exports = Keyboard
