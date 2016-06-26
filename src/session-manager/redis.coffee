@@ -13,6 +13,7 @@ module.exports = (config, prefix = DEFAULT_PREFIX) -> (bot) ->
   client.select(config.db) if config.db
 
   parseSession = (session) ->
+    console.log('parseSession', session)
     session && JSON.parse(session)
 
   create({
@@ -21,7 +22,7 @@ module.exports = (config, prefix = DEFAULT_PREFIX) -> (bot) ->
       client.hsetAsync("#{prefix}:#{bot.id}", id, JSON.stringify(session))
 
     get: (id) ->
-      client.hgetAsync("#{prefix}:#{bot.id}", id).then(console.log.bind(console)).then(parseSession)
+      client.hgetAsync("#{prefix}:#{bot.id}", id).then(parseSession)
 
     getMultiple: (ids) ->
       client.hmgetAsync(["#{prefix}:#{bot.id}"].concat(ids)).then (sessions) ->
