@@ -134,6 +134,9 @@ class CommandHandler
             else
               (ctx) =>
                 ctx.go(@answer.go, {args: @answer.args})
+        # backward compatibility
+        else if @answer.handler
+          @goHandler = eval("(#{@answer.handler})")
       else
         @answer = value: @message.text
 

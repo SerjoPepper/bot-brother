@@ -228,7 +228,7 @@ class Bot
     @api.on 'callback_query', @_onCallbackQuery
     if @config.webHook
       @_setWebhook()
-    else
+    else if @config.polling
       @_unsetWebhook()
 
   _unsetWebhook: ->
