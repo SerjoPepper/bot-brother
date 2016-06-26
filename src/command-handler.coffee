@@ -51,8 +51,8 @@ class CommandHandler
 
     @isSynthetic = params.isSynthetic
     @command = null
-    @context = @prevHandler?.context.clone(@) || new Context(@)
     @type = 'synthetic' if @isSynthetic
+    @context = @prevHandler?.context.clone(@) || new Context(@)
   ###
   @param {String} locale current locale
   ###
