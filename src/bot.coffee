@@ -39,7 +39,7 @@ class Bot
   @option config {Number} [rps=30] Maximum requests per second
   ###
   constructor: (config) ->
-    @config = _.merge({}, @defaultConfig, config)
+    @config = _.extend({}, @defaultConfig, config)
     @key = @config.key
     @id = Number(@key.match(/^\d+/)?[0])
     @commands = []
@@ -222,10 +222,10 @@ class Bot
     else
       options.polling = @config.polling
     @api = new Api(@key, options)
-    @api.on 'message', (args...) => setImmediate @_onMessage(args...)
-    @api.on 'inline_query', (args...) => setImmediate @_onInlineQuery(args...)
-    @api.on 'chosen_inline_result', (args...) => setImmediate @_onChosenInlineResult(args...)
-    @api.on 'callback_query', (args...) => setImmediate @_onCallbackQuery(args...)
+    @api.on 'message', @_onMessage
+    @api.on 'inline_query', @_onInlineQuery
+    @api.on 'chosen_inline_result', @_onChosenInlineResult
+    @api.on 'callback_query', @_onCallbackQuery
     if @config.webHook
       @_setWebhook()
     else
