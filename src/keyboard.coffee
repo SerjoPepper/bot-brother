@@ -129,7 +129,7 @@ class Keyboard
           if _.isFunction(column[k])
             column[k] = column[k](handler.context)
         text = emoji.emojify(text)
-        if !column.isShown? || _.isFunction(column.isShown) && column.isShown(handler.context) || column.isShown
+        if !column.isShown? || _.isFunction(column.isShown) && column.isShown(handler.context) || _.isBoolean(column.isShown) && column.isShown
           button = {text}
           if @inline
             button.url = column.url if column.url

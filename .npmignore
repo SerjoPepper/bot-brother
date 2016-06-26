@@ -2,3 +2,4 @@
 /src/
 *.log
 /__storage/
+.DS_Store

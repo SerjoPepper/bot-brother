@@ -2,3 +2,4 @@
 /lib/
 *.log
 /__storage/
+.DS_Store
