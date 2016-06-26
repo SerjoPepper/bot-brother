@@ -200,7 +200,7 @@ class CommandHandler
     exData =
       render: (key) => @renderText(key, data, options)
     data = _.extend({}, exData, data)
-    text = if textFn
+    text = if typeof textFn is 'function'
       textFn(data)
     else if !options.strict
       ejs.compile(key)(data)
@@ -236,6 +236,8 @@ class CommandHandler
   go: (name, params = {}) ->
     message = _.extend({}, @message)
     [name, type] = name.split('$')
+    if type is 'cb'
+      type = 'callback'
     handler = new CommandHandler({
       name
       message

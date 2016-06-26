@@ -55,8 +55,7 @@ bot.withContext(sessionId, callbackQueryMessageId)
   ctx.updateInlineKeyboard()
 
 
-bot.inlineQuery()
-.invoke (ctx) ->
+bot.inlineQuery((ctx) ->
   # список сообщений, для каждого своя клавиатура
   messages = [
       {text: 'blabla'}

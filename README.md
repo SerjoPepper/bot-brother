@@ -441,64 +441,8 @@ bot.keyboard([[
   {'command1': {go: 'command1'}}
 ]])
 
-// Also you can use this syntax
-bot.keyboard([[
-  {'command1': function (ctx) {return ctx.go('command1');}}
-]])
 ```
 
-### Embedded handler
-You can also use embedded handler in keyboard.
-```
-bot.keyboard([[
-  {
-    'text1': {
-      handler: function (ctx) {
-        return ctx.sendMessage('This is my answer')
-      }
-    }
-  }
-]]);
-
-// Or with this syntax:
-bot.keyboard([[
-  {
-    'text1': function (ctx) {
-      return ctx.sendMessage('Hello from there').then(function () {
-        ctx.go('command1')
-      })
-    }
-  }
-]]);
-```
-
-Important! Avoid using outscope variables in embedded handler. Embedded handler functions are stored in redis, so when a function will be invoked your outscope variables won't be available.
-```
-// This does not work! Do not use outscope variables.
-var outScopeText = 'some text';
-bot.keyboard([[
-  {
-    'text1': function (ctx) {
-      return ctx.sendMessage('Hello from there. ' + outScopeText).then(function () {
-        ctx.go('command1')
-      })
-    }
-  }
-]]);
-
-// This works!
-bot.use('before', function (ctx) {
-  ctx.data.outScopeText = outScopeText;
-}).keyboard([[
-  {
-    'text1': function (ctx) {
-      return ctx.sendMessage('Hello from there. <%=outScopeText%>').then(function () {
-        ctx.go('command1');
-      })
-    }
-  }
-]]);
-```
 
 ### isShown flag
 `isShown` flag can be used to hide keyboard buttons in certain moment.
@@ -941,19 +885,19 @@ ctx.keyboard([[{'command 1': {go: 'command1'}}]])
 ctx.hideKeyboard()
 ```
 
-#### context.render(key)
+#### context.render(key, data)
 Returns rendered text or key
 ```js
 ctx.texts({
   localization: {
     key: {
-      name: 'Hi, <%=name%>'
+      name: 'Hi, <%=name%> <%=secondName%>'
     }
   }
 })
 ctx.data.name = 'John';
-var str = ctx.render('localization.key.name');
-console.log(str); // outputs 'Hi, John'
+var str = ctx.render('localization.key.name', {secondName: 'Doe'});
+console.log(str); // outputs 'Hi, John Doe'
 ```
 
 #### context.go()
@@ -982,8 +926,13 @@ Returns <code>Promise</code>
 Goes to previously invoked command.
 Useful in keyboard 'Back' button.
 ```js
+bot.command('hello')
+.answer(function (context) {
+  return context.goBack()
+})
+// or
 bot.keyboard([[
-  {'Back': function (ctx) {return ctx.goBack();}}
+  {'Back': {go: '$back'}}
 ]])
 ```
 

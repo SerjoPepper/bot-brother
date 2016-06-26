@@ -129,13 +129,13 @@ class Keyboard
           if _.isFunction(column[k])
             column[k] = column[k](handler.context)
         text = emoji.emojify(text)
-        if !_.isFunction(column.isShown) || column.isShown(handler.context)
+        if !column.isShown? || _.isFunction(column.isShown) && column.isShown(handler.context) || column.isShown
           button = {text}
           if @inline
             button.url = column.url if column.url
             button.switch_inline_query = column.switchInlineQuery if column.switchInlineQuery?
             button.callback_data = [
-              column.go || handler.name + '$callback',
+              column.go || handler.name + '$cb',
               column.args?.join(',') || '',
               column.value || '',
               JSON.stringify(column.callbackData || {})

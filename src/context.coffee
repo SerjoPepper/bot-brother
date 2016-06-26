@@ -9,7 +9,7 @@ prepareText = (text) ->
 RETRIABLE_ERRORS = ['ECONNRESET', 'ENOTFOUND', 'ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNREFUSED', 'EHOSTUNREACH', 'EPIPE', 'EAI_AGAIN']
 RESTRICTED_PROPS = [
   'isRedirected', 'isSynthetic', 'message', 'session'
-  'bot', 'command', 'isEnded', 'meta', 'type'
+  'bot', 'command', 'isEnded', 'meta', 'type', 'args'
   'callbackData', 'inlineQuery', 'chosenInlineResult'
 ]
 HTTP_RETRIES = 20
@@ -46,7 +46,7 @@ class Context
       type: @_handler.type
       callbackData: @_handler.callbackData
     }
-    @_handler = handler
+    @args = @_handler.args
     @_api = @_handler.bot.api
     @_user = @_handler.session.meta.user
     @_temp = {} # dont clone
@@ -65,6 +65,7 @@ class Context
       args: @_handler.args
       type: @_handler.type
     }
+    @args = @_handler.args
     @answer = @_handler.answer?.value
 
   ###
@@ -109,8 +110,8 @@ class Context
   @param {String} key text or key from localization dictionary
   @param {Object} options
   ###
-  render: (key, options) ->
-    @_handler.renderText(key, @data, options)
+  render: (key, data, options) ->
+    @_handler.renderText(key, _.extend({}, @data, data), options)
 
 
   ###
