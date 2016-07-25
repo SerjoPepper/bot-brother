@@ -882,6 +882,14 @@ me  > bye
 bot > Type: answer; Name: hello; Answer: bye
 ```
 
+Also you can pass args in this way
+```
+me  > /hello__world
+bot > Type: invoke; Name: hello; Arguments: world
+me  > bye
+bot > Type: answer; Name: hello; Answer: bye
+```
+
 #### context.answer
 This is an answer for a command. Context.answer is defined only when user answers with a text message.
 
