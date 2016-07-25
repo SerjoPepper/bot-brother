@@ -329,7 +329,8 @@ class Context
   @return {Promise}
   ###
   goBack: ->
-    @go(@_handler.getPrevStateName(), {noChangeHistory: true, args: @_handler.getPrevStateArgs()})
+    prevCommandName = @_handler.getPrevStateName()
+    @go(prevCommandName, {noChangeHistory: true, args: @_handler.getPrevStateArgs()})
 
   ###
   Repeat current command
@@ -418,7 +419,7 @@ class Context
           null
         else
           markup = @_renderKeyboard(params)
-          if markup.prevKeyboard
+          if markup?.prevKeyboard
             null
           else
             if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
