@@ -1,5 +1,6 @@
 # Bot-brother
 Node.js library to help you easy create telegram bots. Works on top of [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api)
+*Supports telegram-api 2.0 inline keyboards* 
 
 Main features:
   - sessions
@@ -7,6 +8,7 @@ Main features:
   - localization
   - templated keyboards and messages
   - navigation between commands
+  - inline keyboards
 
 This bots work on top of **bot-brother**:
 [@weatherman_bot](https://telegram.me/weatherman_bot)
