@@ -27,19 +27,21 @@ This bots work on top of **bot-brother**:
 - [Middlewares](#middlewares)
   - [Predefined middlewares](#predefined-middlewares)
 - [Sessions](#sessions)
+  - [Redis storage](#redis-storage)
+  - [With custom Redis-client](#with-custom-redis-client)
+  - [Memory storage](#memory-storage)
+  - [Your custom storage](#your-custom-storage)
 - [Localization and texts](#localization-and-texts)
 - [Keyboards](#keyboards)
   - [Going to command](#going-to-command)
-  - [Embedded handler](#embedded-handler)
   - [isShown flag](#isshown-flag)
   - [Localization in keyboards](#localization-in-keyboards)
   - [Keyboard templates](#keyboard-templates)
   - [Keyboard answers](#keyboard-answers)
+  - [Inline 2.0 keyboards](#inline-20-keyboards)
 - [Api](#api)
   - [Bot](#bot)
     - [bot.api](#botapi)
-    - [bot.listenUpdates](#botlistenupdates)
-    - [bot.stopListenUpdates](#botstoplistenupdates)
     - [bot.command](#botcommand)
     - [bot.keyboard](#botkeyboard)
     - [bot.texts](#bottexts)
@@ -59,7 +61,8 @@ This bots work on top of **bot-brother**:
   - [Context methods](#context-methods)
     - [context.keyboard(keyboardDefinition)](#contextkeyboardkeyboarddefinition)
     - [context.hideKeyboard()](#contexthidekeyboard)
-    - [context.render(key)](#contextrenderkey)
+    - [context.inlineKeyboard(keyboardDefinition)](#contextinlinekeyboardkeyboarddefinition)
+    - [context.render(key, data)](#contextrenderkey-data)
     - [context.go()](#contextgo)
     - [context.goParent()](#contextgoparent)
     - [context.goBack()](#contextgoback)
@@ -91,7 +94,8 @@ npm install bot-brother
 var bb = require('bot-brother');
 var bot = bb({
   key: '<_TELEGRAM_BOT_TOKEN>',
-  redis: {port: 6379, host: '127.0.0.1'}
+  sessionManager: bb.sessionManager.memory(),
+  polling: { interval: 0, timeout: 1 }
 });
 
 // Let's create command '/start'.
@@ -118,9 +122,6 @@ bot.command('upload_photo')
   // See https://core.telegram.org/bots/api#message 
   return ctx.sendPhoto(ctx.message.photo[0].file_id, {caption: 'I got your photo!'});
 });
-
-// Start listening updates via polling.
-bot.listenUpdates();
 ```
 
 ## Examples of usage
@@ -151,10 +152,8 @@ Middlewares are useful for multistage command handling.
 ```js
 var bb = require('bot-brother');
 var bot = bb({
-  key: '<_TELEGRAM_BOT_TOKEN>',
-  redis: {port: 6379, host: '127.0.0.1'}
+  key: '<_TELEGRAM_BOT_TOKEN>'
 })
-bot.listenUpdates();
 
 bot.use('before', function (ctx) {
   return findUserFromDbPromise(ctx.meta.user.id).then(function (user) {
@@ -271,7 +270,7 @@ bot.use('before', bb.middlewares.botanio('<BOTANIO_API_KEY>'));
 
 
 ## Sessions
-Sessions are implemented with Redis 2.8+
+Sessions can be implemented with Redis, with memory/fs storage or your custom storage
 ```js
 bot.command('memory')
 .invoke(function (ctx) {
@@ -296,6 +295,68 @@ bot > 12
 me  > hello
 bot > 12hello
 ```
+
+### Redis storage
+```
+var bb = require('bot-brother')
+bot = bb({
+  key: '<_TELEGRAM_BOT_TOKEN>',
+  sessionManager: bb.sessionManager.redis({port: '...', host: '...'}),
+  polling: { interval: 0, timeout: 1 }
+})
+```
+### With custom Redis-client
+```
+var bb = require('bot-brother')
+bot = bb({
+  key: '<_TELEGRAM_BOT_TOKEN>',
+  sessionManager: bb.sessionManager.redis({client: yourCustomRedisConnection}),
+  polling: { interval: 0, timeout: 1 }
+})
+```
+### Memory storage
+```
+var bb = require('bot-brother')
+bot = bb({
+  key: '<_TELEGRAM_BOT_TOKEN>',
+  // set the path where your session will be saved. You can skip this option
+  sessionManager: bb.sessionManager.memory({dir: '/path/to/dir'}), 
+  polling: { interval: 0, timeout: 1 }
+})
+```
+### Your custom storage
+```
+var bb = require('bot-brother')
+bot = bb({
+  key: '<_TELEGRAM_BOT_TOKEN>',
+  // set the path where your session will be saved. You can skip this option
+  sessionManager: function (bot) {
+    return bb.sessionManager.create({
+      save: function (id, session) {
+        // save session
+        // should return promise
+        return Promise.resolve(true)
+      },
+      get: function(id) {
+        // get session by key
+        // should return promise with {Object}
+        return fetchYourSessionAsync(id)
+      },
+      getMultiple: function(ids) {
+        // optionally method
+        // define it if you use expression: bot.withContexts(ids)
+        // should return promise with array of session objects
+      },
+      getAll: function() {
+        // optionally method, same as 'getMultiple'
+        // define it if you use bot.withAllContexts
+      }
+    })
+  }, 
+  polling: { interval: 0, timeout: 1 }
+})
+```
+
 
 ## Localization and texts
 Localization can be used in texts and keyboards.
@@ -547,6 +608,38 @@ bot.command('command1', {compliantKeyboard: true})
 });
 ```
 
+### Inline 2.0 keyboards
+You can use inline keyboards in the same way as default keyboards
+```js
+bot.bommand('inline_example')
+.answer(function (ctx) {
+  ctx.sendMessage('Inline data example')
+})
+.callback(function (ctx) {
+  ctx.updateText('Callback data: ' + ctx.callbackData.myVar)
+})
+// set any your data to callbackData.
+// IMPORTANT! Try to fit your data in 60 chars, because Telegram has limit for inline buttons 
+.inlineKeyboard([[
+  {'Option 1': {callbackData: {myVar: 1}, isShown: function (ctx) { return ctx.callbackData.myVar != 1 }}},
+  {'Option 2': {callbackData: {myVar: 2}, isShown: function (ctx) { return ctx.callbackData.myVar != 2 }}},
+  // use syntax:
+  // 'callback${{CALLBACK_COMMAND}}' (or 'cb${{CALLBACK_COMMAND}}') 
+  // 'invoke${{INVOKE_COMMAND}}'
+  // to go to another command
+  {'Option 3': {go: 'cb$go_inline_example'}},
+  {'Option 4': {go: 'invoke$go_inline_example'}}
+]])
+
+bot.command('go_inline_example')
+.invoke(function (ctx) {
+  ctx.sendMessage('This command invoked directly')
+})
+.callback(function (ctx) {
+  ctx.updateText('Command invoked via callback! type /inline_example to start again')
+})
+```
+
 ## Api
 There are three base classes:
   - Bot
@@ -559,10 +652,6 @@ Bot represents a bot.
 var bb = require('bot-brother');
 var bot = bb({
   key: '<TELEGRAM_BOT_TOKEN>',
-  redis: {
-    port: 6379,
-    host: '127.0.0.1'
-  },
   // optional
   webHook: {
     url: 'https://mybot.com/updates',
@@ -580,18 +669,6 @@ Has following methods and fields:
 bot.api is an instance of [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api)
 ```js
 bot.api.sendMessage(chatId, 'message');
-```
-
-#### bot.listenUpdates
-Starts listening updates via polling or webhook. By default `polling` is enabled.
-```js
-bot.listenUpdates();
-```
-
-#### bot.stopListenUpdates
-Stops listening updates.
-```js
-bot.stopListenUpdates();
 ```
 
 #### bot.command
@@ -637,10 +714,6 @@ We omit `webHook.key` parameter and run node.js on 3000 unsecure port.
 var bb = require('bot-brother');
 var bot = bb({
   key: '<TELEGRAM_BOT_TOKEN>',
-  redis: {
-    port: 6379,
-    host: '127.0.0.1'
-  },
   webHook: {
     // Your nginx should proxy this to 127.0.0.1:3000
     url: 'https://mybot.com/updates',
@@ -656,10 +729,6 @@ Otherwise if your node.js server is available outside, use following code:
 var bb = require('bot-brother');
 var bot = bb({
   key: '<TELEGRAM_BOT_TOKEN>',
-  redis: {
-    port: 6379,
-    host: '127.0.0.1'
-  },
   webHook: {
     url: 'https://mybot.com/updates',
     cert: '<PEM_PUBLIC_KEY>',
@@ -780,7 +849,7 @@ bot > Hello world, John! Good bye, John
 context.meta contains following fields:
   - `user` - see https://core.telegram.org/bots/api#user
   - `chat` - see https://core.telegram.org/bots/api#chat
-  - `sessionId` - key name for saving session in redis, currently it is `meta.chat.id`. So for group chats your session data is shared between all users in chat.
+  - `sessionId` - key name for saving session, currently it is `meta.chat.id`. So for group chats your session data is shared between all users in chat.
 
 #### context.command
 Represents currently handled command. Has following properties:
@@ -884,6 +953,13 @@ ctx.keyboard([[{'command 1': {go: 'command1'}}]])
 ```js
 ctx.hideKeyboard()
 ```
+
+#### context.inlineKeyboard(keyboardDefinition)
+Sets keyboard
+```js
+ctx.keyboard([[{'command 1': {callbackData: {myVar: 2}}}]])
+```
+
 
 #### context.render(key, data)
 Returns rendered text or key

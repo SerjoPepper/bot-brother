@@ -370,7 +370,9 @@ class Context
             throw e
       execAction()
     .then co.wrap (message) =>
-      unless @_temp.inlineMarkup
+      if @_temp.inlineMarkupSent
+        @_handler.resetBackHistory()
+      else
         inlineMarkup = @_provideKeyboardMarkup(inline: true)
         if inlineMarkup && (method not in ['editMessageReplyMarkup', 'editMessageText', 'editMessageCaption']) && message?.message_id
           yield @_executeApiAction('editMessageReplyMarkup', JSON.stringify(inlineMarkup), {
@@ -384,7 +386,7 @@ class Context
     markup = @_provideKeyboardMarkup()
     unless markup
       markup = @_provideKeyboardMarkup(inline: true)
-      @_temp.inlineMarkup = true
+      @_temp.inlineMarkupSent = true
     _params = {}
     if params.caption
       params.caption = prepareText(params.caption)

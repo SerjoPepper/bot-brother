@@ -272,9 +272,10 @@ class CommandHandler
     locale = @getLocale()
     chain = @getFullChain()
     data = @context.data
+    isInline = params.inline
     keyboard = null
     for command in chain
-      if command.prevKeyboard && !params.inline
+      if command.prevKeyboard && !isInline
         return {prevKeyboard: true}
       keyboard = params.keyboard && new Keyboard(params.keyboard, params) ||
         command.getKeyboard(name, locale, params) ||
@@ -284,14 +285,20 @@ class CommandHandler
     keyboard = keyboard?.render(locale, chain, data, @)
     if keyboard
       {markup, map} = keyboard
-      @session.keyboardMap = map unless params.inline
+      @session.keyboardMap = map unless isInline
       markup
     else
-      @session.keyboardMap = {} unless params.inline
+      @session.keyboardMap = {} unless isInline
       null
 
   unsetKeyboardMap: ->
     @session.keyboardMap = {}
+
+  resetBackHistory: ->
+    unless @noChangeHistory
+      currentBackName = @session.backHistory[@name]
+      @session.backHistory[@name] = @session.backHistory[currentBackName]
+      @session.backHistoryArgs[@name] = @session.backHistoryArgs[currentBackName]
 
 
 module.exports = CommandHandler
