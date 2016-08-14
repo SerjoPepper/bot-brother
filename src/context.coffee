@@ -412,24 +412,24 @@ class Context
       else
         null
     else
-      if @_handler.command?.compliantKeyboard && noPrivate
-        force_reply: true
+      # if @_handler.command?.compliantKeyboard && noPrivate
+      #   force_reply: true
+      # else
+      if @_temp.usePrevKeyboard || @_usePrevKeyboard
+        null
       else
-        if @_temp.usePrevKeyboard || @_usePrevKeyboard
+        markup = @_renderKeyboard(params)
+        if markup?.prevKeyboard
           null
         else
-          markup = @_renderKeyboard(params)
-          if markup?.prevKeyboard
-            null
+          if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
+            keyboard: markup, resize_keyboard: true
           else
-            if markup && !_.isEmpty(markup) && markup.some((el) -> !_.isEmpty(el))
-              keyboard: markup, resize_keyboard: true
+            @_handler.unsetKeyboardMap()
+            if noPrivate
+              force_reply: true
             else
-              @_handler.unsetKeyboardMap()
-              if noPrivate
-                force_reply: true
-              else
-                hide_keyboard: true
+              hide_keyboard: true
 
 
 
