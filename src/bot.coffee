@@ -202,7 +202,7 @@ class Bot
         .then =>
           @sessionManager.save(sessionId, handler.session)
     else
-      throw new Error('Bad time: ' + JSON.stringify(message))
+      console.error('Bad time: ' + JSON.stringify(message))
 
   _onCallbackQuery: (callbackQuery) =>
     {message} = callbackQuery
