@@ -121,7 +121,7 @@ class CommandHandler
       unless _.isEmpty(@session.keyboardMap)
         @answer = @session.keyboardMap[@message.text]
         unless @answer?
-          if @command?.compliantKeyboard || _.isEmpty(@session.keyboardMap) || _.values(@session.keyboardMap).some((button) -> (button.requestContact || button.requestContact))
+          if @command?.compliantKeyboard || _.values(@session.keyboardMap).some((button) -> (button.requestContact || button.requestContact))
             @answer = value: @message.text
           else
             return
@@ -145,6 +145,7 @@ class CommandHandler
       if !@noChangeHistory && @prevHandler?.name && @prevHandler.name != @name
         @session.backHistory[@name] = @prevHandler.name
         @session.backHistoryArgs[@name] = @prevHandler.args
+      @session.meta.current = @name
       _.extend(@session.meta, _.pick(@message, 'from', 'chat'))
       @session.meta.user = @message?.from || @session.meta.user
 
