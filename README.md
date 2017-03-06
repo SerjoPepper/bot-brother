@@ -967,7 +967,7 @@ ctx.hideKeyboard()
 #### context.inlineKeyboard(keyboardDefinition)
 Sets keyboard
 ```js
-ctx.keyboard([[{'command 1': {callbackData: {myVar: 2}}}]])
+ctx.inlineKeyboard([[{'command 1': {callbackData: {myVar: 2}}}]])
 ```
 
 
