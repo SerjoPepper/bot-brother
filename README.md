@@ -614,24 +614,26 @@ bot.command('command1', {compliantKeyboard: true})
 You can use inline keyboards in the same way as default keyboards
 ```js
 bot.bommand('inline_example')
+.use('before', function (ctx) {
+  // set any your data to callbackData.
+  // IMPORTANT! Try to fit your data in 60 chars, because Telegram has limit for inline buttons 
+  ctx.inlineKeyboard([[
+    {'Option 1': {callbackData: {myVar: 1}, isShown: function (ctx) { return ctx.callbackData.myVar != 1 }}},
+    {'Option 2': {callbackData: {myVar: 2}, isShown: function (ctx) { return ctx.callbackData.myVar != 2 }}},
+    // use syntax:
+    // 'callback${{CALLBACK_COMMAND}}' (or 'cb${{CALLBACK_COMMAND}}') 
+    // 'invoke${{INVOKE_COMMAND}}'
+    // to go to another command
+    {'Option 3': {go: 'cb$go_inline_example'}},
+    {'Option 4': {go: 'invoke$go_inline_example'}}
+  ]])
+})
 .answer(function (ctx) {
   ctx.sendMessage('Inline data example')
 })
 .callback(function (ctx) {
   ctx.updateText('Callback data: ' + ctx.callbackData.myVar)
 })
-// set any your data to callbackData.
-// IMPORTANT! Try to fit your data in 60 chars, because Telegram has limit for inline buttons 
-.inlineKeyboard([[
-  {'Option 1': {callbackData: {myVar: 1}, isShown: function (ctx) { return ctx.callbackData.myVar != 1 }}},
-  {'Option 2': {callbackData: {myVar: 2}, isShown: function (ctx) { return ctx.callbackData.myVar != 2 }}},
-  // use syntax:
-  // 'callback${{CALLBACK_COMMAND}}' (or 'cb${{CALLBACK_COMMAND}}') 
-  // 'invoke${{INVOKE_COMMAND}}'
-  // to go to another command
-  {'Option 3': {go: 'cb$go_inline_example'}},
-  {'Option 4': {go: 'invoke$go_inline_example'}}
-]])
 
 bot.command('go_inline_example')
 .invoke(function (ctx) {
