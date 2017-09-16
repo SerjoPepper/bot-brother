@@ -628,7 +628,7 @@ bot.bommand('inline_example')
     {'Option 4': {go: 'invoke$go_inline_example'}}
   ]])
 })
-.answer(function (ctx) {
+.invoke(function (ctx) {
   ctx.sendMessage('Inline data example')
 })
 .callback(function (ctx) {
